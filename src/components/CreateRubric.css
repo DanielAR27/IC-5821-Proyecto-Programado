@@ -1,0 +1,430 @@
+/* src/components/CreateRubric.css */
+
+/* Global Box-Sizing */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+.create-rubric-wrapper {
+  width: 100%;
+}
+
+/* Encabezado */
+.header {
+  background-color: #a9a9a9; /* Gris más oscuro */
+  padding: 20px;
+  text-align: left; /* Alinear texto a la izquierda */
+  font-size: 24px;
+  font-weight: bold;
+}
+
+/* Mensaje de Éxito */
+.success-message {
+  max-width: 600px;
+  margin: 20px auto;
+  padding: 15px;
+  background-color: #d4edda; /* Verde claro */
+  color: #155724; /* Verde oscuro */
+  border: 1px solid #c3e6cb;
+  border-radius: 4px;
+  text-align: center;
+  font-weight: bold;
+}
+
+/* Contenedor del formulario */
+.create-rubric-container {
+  max-width: 600px;
+  margin: 20px auto; /* Centrar y añadir margen superior */
+  font-family: Arial, sans-serif;
+  padding: 20px;
+  border: 1px solid #d3d3d3;
+  border-radius: 4px;
+  background-color: #f9f9f9; /* Fondo suave para el formulario */
+}
+
+.rubric-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group {
+  margin-bottom: 15px;
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group label {
+  margin-bottom: 5px;
+  font-weight: bold;
+}
+
+.form-group input,
+.form-group textarea,
+.form-group select {
+  padding: 8px;
+  font-size: 16px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.form-group textarea {
+  resize: vertical;
+  height: 100px;
+}
+
+/* Botón "Siguiente" */
+/* src/components/CreateRubric.css */
+
+/* Botón "Siguiente" */
+.next-button {
+  margin-top: 20px;
+  padding: 10px 20px;
+  font-size: 16px;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  width: 100%; /* Ocupar todo el ancho del contenedor */
+}
+
+.next-button:hover {
+  background-color: #45a049;
+}
+
+.next-button.disabled {
+  background-color: #f5f5f5; /* Fondo blanco cuando está deshabilitado */
+  color: #ccc; /* Texto gris claro */
+  cursor: not-allowed;
+  border: 1px solid #ccc;
+}
+
+
+/* Matriz Container */
+.matrix-container {
+  padding: 20px;
+}
+
+h2 {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+/* Configuración Inicial */
+.setup-box {
+  display: flex;
+  flex-direction: column; /* Cambia a columna para que el botón quede abajo */
+  justify-content: center;
+  align-items: center;
+  margin-top: 30px;
+}
+
+.setup-section {
+  background-color: #f9f9f9;
+  padding: 20px 30px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.setup-input {
+  margin-bottom: 15px;
+}
+
+.setup-input label {
+  margin-right: 10px;
+  font-weight: bold;
+}
+
+.setup-input input {
+  width: 60px;
+  padding: 5px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.start-button {
+  padding: 10px 20px;
+  background-color: #28a745; /* Verde */
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background-color 0.3s ease;
+  
+  /* Para centrar */
+  display: block;
+  margin: 0 auto;
+}
+
+.start-button:hover {
+  background-color: #218838;
+}
+
+.start-button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+/* Botón Reset */
+.reset-button {
+  margin-top: 30px; /* Asegúrate de que haya espacio entre los campos y el botón */
+  padding: 10px 20px;
+  background-color: #dc3545; /* Color rojo para el botón */
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.reset-button:hover {
+  background-color: #c82333; /* Más oscuro al pasar el ratón */
+}
+
+
+/* Sección de Criterio */
+.criterion-section {
+  margin-top: 20px;
+}
+
+.criterion-container {
+  background-color: #ffffff;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.criterion-number {
+  text-align: center;
+  margin-bottom: 10px;
+  font-size: 18px;
+  color: #343a40;
+}
+
+.criterion-name-input {
+  width: 100%;
+  padding: 8px; /* Tamaño reducido */
+  margin-bottom: 18px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px; /* Tamaño de fuente reducido */
+}
+
+.rubric-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 20px;
+}
+
+.rubric-table th,
+.rubric-table td {
+  border: 1px solid #ccc;
+  padding: 10px;
+  text-align: center;
+}
+
+.text-box {
+  width: 100%;
+  padding: 10px; /* Aumentar el padding para hacer los cuadros más grandes */
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  resize: none; /* Eliminar la posibilidad de redimensionar */
+  overflow-y: auto; /* Permitir scroll vertical */
+  overflow-x: hidden; /* Evitar scroll horizontal */
+  height: 120px; /* Altura fija */
+  font-size: 16px; /* Tamaño de fuente aumentado */
+}
+
+.selected-row {
+  background-color: #e6f7ff;
+}
+
+/* Botones para agregar y eliminar filas */
+.add-row-buttons {
+  margin-top: 15px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.add-row-buttons .add-button {
+  background-color: #007bff; /* Azul */
+}
+
+.add-row-buttons .delete-button {
+  background-color: #dc3545; /* Rojo para eliminar */
+}
+
+.add-row-buttons button {
+  margin-left: 10px;
+  padding: 8px 12px;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: opacity 0.3s ease;
+}
+
+.add-row-buttons .add-button:hover,
+.add-row-buttons .delete-button:hover {
+  opacity: 0.9;
+}
+
+/* Botones de navegación */
+.navigation-buttons {
+  margin-top: 20px;
+  display: flex;
+  justify-content: flex-start;
+}
+
+.navigation-buttons .nav-button:last-child {
+  margin-left: auto; /* Empuja el último botón (Previsualizar) hacia la derecha */
+}
+
+.navigation-buttons .nav-button {
+  padding: 10px 20px;
+  background-color: #28a745; /* Verde para navegar */
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.navigation-buttons .nav-button:hover {
+  background-color: #218838;
+}
+
+.preview-button {
+  background-color: #28a745; /* Verde */
+  color: white; /* Asegurar que el texto sea blanco */
+}
+
+.preview-button:hover {
+  background-color: #218838;
+}
+
+/* Botones en la previsualización */
+.preview-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px; /* Espacio entre los botones */
+  margin-top: 20px;
+}
+
+.edit-button,
+.save-button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  color: white;
+}
+
+.edit-button {
+  background-color: #ffc107; /* Amarillo para regresar a edición */
+}
+
+.edit-button:hover {
+  background-color: #e0a800;
+}
+
+.save-button {
+  background-color: #28a745; /* Verde para guardar */
+}
+
+.save-button:hover {
+  background-color: #218838;
+}
+
+/* Vista de previsualización */
+.preview-container {
+  width: 100%;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.preview-criterion {
+  margin-bottom: 30px;
+}
+
+.preview-criterion h3 {
+  margin-bottom: 10px;
+  color: #343a40;
+}
+
+.preview-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.preview-table th,
+.preview-table td {
+  border: 1px solid #ccc;
+  padding: 10px;
+  text-align: center;
+}
+
+.preview-table th {
+  background-color: #f1f1f1;
+  font-weight: bold;
+}
+
+/* Mensajes de advertencia */
+.warning-message {
+  background-color: #fff3cd; /* Fondo amarillo claro */
+  color: #856404; /* Texto marrón oscuro */
+  padding: 10px 20px;
+  border: 1px solid #ffeeba;
+  border-radius: 4px;
+  margin-bottom: 20px;
+  text-align: center;
+  font-weight: bold;
+}
+
+/* Responsividad */
+@media (max-width: 768px) {
+  .rubric-table th,
+  .rubric-table td,
+  .preview-table th,
+  .preview-table td {
+    padding: 5px;
+    font-size: 12px;
+  }
+
+  .text-box {
+    height: 100px;
+    font-size: 14px;
+  }
+
+  .start-button,
+  .reset-button,
+  .add-row-buttons button,
+  .navigation-buttons .nav-button,
+  .preview-button,
+  .edit-button,
+  .save-button {
+    padding: 8px 16px;
+    font-size: 14px;
+  }
+
+  .preview-container {
+    max-width: 100%;
+  }
+
+  .criterion-number {
+    font-size: 16px;
+  }
+
+  .preview-buttons {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .preview-buttons button {
+    width: 100%;
+  }
+}
