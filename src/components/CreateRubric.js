@@ -1,6 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import './CreateRubric.css';
 
+/*TODO: Queda por modificar 
+1) El creador debe seleccionar el tipo de propuesta para la rúbrica?
+o eso debería hacerlo manualmente el administrador?
+2) El id_creador debe estar dado por el login actual del creador.
+*/
+
 function CreateRubric() {
   const [formData, setFormData] = useState({
     autor: '',
@@ -221,19 +227,34 @@ function Matrix({ formData, onReturnToForm }) {
   const [successMessage, setSuccessMessage] = useState(''); // Estado para manejar el mensaje de éxito
 
   const saveRubric = async () => {
+    if (!criteria || criteria.length === 0) {
+      setWarningMessage("No hay criterios definidos. Por favor, agregue criterios.");
+      return;
+    }
+  
     const rubricData = {
       titulo: formData.titulo,
       descripcion: formData.descripcion,
       cantidad_criterios: numCriteria,
       cantidad_columnas: numColumns,
       creador_id: 1, // Hardcodeado por ahora
-      publica: false, // Valor predeterminado
-      fecha_creacion: formData.fecha, // Asegúrate de que esté enviando la fecha correcta
+      publica: false,
+      fecha_creacion: formData.fecha,
       autor: formData.autor,
       area_general: formData.areaGeneral,
       area_especifica: formData.areaEspecifica,
       aspecto_evaluar: formData.aspectoEvaluar,
-      tipo_proyecto_id: 2 // Hardcodeado por ahora
+      tipo_proyecto_id: 2,
+      criterios: criteria.map((criterion, index) => ({
+        nombre: criterion.name || `Criterio ${index + 1}`,
+        subcriterios: criterion.rows.map((row, indexRow) => ({
+          descripcion: row.descripcion || `Subcriterio ${indexRow + 1}`,
+          porcentaje: row.weight || 0,
+          columnas: Array.from({ length: numColumns }, (_, indexCol) => ({
+            textoColumna: row[`puntaje_${indexCol}`] || '' // Las columnas ahora se asocian a cada fila (subcriterio)
+          }))
+        }))
+      }))
     };
   
     try {
@@ -256,12 +277,15 @@ function Matrix({ formData, onReturnToForm }) {
       setTimeout(() => {
         setSuccessMessage('');
       }, 3000);
+  
     } catch (error) {
       console.error("Error al guardar la rúbrica:", error);
-      setWarningMessage("Hubo un error al guardar la rúbrica.");
+      if (!warningMessage) {
+        setWarningMessage("Hubo un error al guardar la rúbrica.");
+      }
     }
   };
-    
+  
   const resetSetup = () => {
     setSetupComplete(false);
     setCriteria([]);
