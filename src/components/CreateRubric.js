@@ -1,7 +1,5 @@
-// src/components/CreateRubric.js
-import React, { useState, useEffect} from 'react';
-import './CreateRubric.css'; // Asegúrate de incluir todos los estilos combinados
-import { useNavigate } from 'react-router-dom'; // Asegúrate de tener react-router-dom instalado
+import React, { useState, useEffect } from 'react';
+import './CreateRubric.css';
 
 function CreateRubric() {
   const [formData, setFormData] = useState({
@@ -14,14 +12,9 @@ function CreateRubric() {
     aspectoEvaluar: 'opción #1',
   });
 
-  // Estado para controlar la visualización del formulario o de la Matriz
-  const [showMatrix, setShowMatrix] = useState(false); // Definir el estado para mostrar la matriz
-
-
-  // Estado para controlar si el botón debe estar deshabilitado
+  const [showMatrix, setShowMatrix] = useState(false);
   const [isButtonDisabled, setIsButtonDisabled] = useState(true);
 
-  // Validar si todos los campos están llenos
   useEffect(() => {
     const allFieldsFilled = Object.values(formData).every(field => field.trim() !== '');
     setIsButtonDisabled(!allFieldsFilled);
@@ -33,21 +26,17 @@ function CreateRubric() {
   };
 
   const handleNext = () => {
-    console.log('Datos del formulario:', formData);
-    // Solo continuar si no está deshabilitado
     if (!isButtonDisabled) {
-      setShowMatrix(true); // Mostrar la Matriz
+      setShowMatrix(true);
     }
   };
 
   return (
     <div className="create-rubric-wrapper">
-      {/* Encabezado que abarca todo el ancho */}
       <div className="header">Rubrics App</div>
 
       {!showMatrix ? (
         <div className="create-rubric-container">
-          {/* Formulario */}
           <form className="rubric-form">
             {/* Campos del formulario */}
             <div className="form-group">
@@ -122,7 +111,6 @@ function CreateRubric() {
             </div>
           </form>
 
-          {/* Botón "Siguiente" ubicado debajo del formulario */}
           <button
             type="button"
             onClick={handleNext}
@@ -140,7 +128,6 @@ function CreateRubric() {
 }
 
 function Matrix({ formData, onReturnToForm }) {
-  // Estados existentes
   const [numColumns, setNumColumns] = useState(0);
   const [numCriteria, setNumCriteria] = useState(0);
   const [currentCriterion, setCurrentCriterion] = useState(0);
@@ -148,13 +135,8 @@ function Matrix({ formData, onReturnToForm }) {
   const [setupComplete, setSetupComplete] = useState(false);
   const [selectedRow, setSelectedRow] = useState(null);
 
-  // Nuevo estado para manejar la previsualización
   const [isPreview, setIsPreview] = useState(false);
-
-  // Nuevo estado para mensajes de advertencia
-  const [warningMessage, setWarningMessage] = useState('');
-
-  const navigate = useNavigate(); // Hook para navegación
+  const [warningMessage, setWarningMessage] = useState(''); // Ya usado
 
   const handleStart = () => {
     if (numColumns > 0 && numCriteria > 0) {
@@ -168,10 +150,20 @@ function Matrix({ formData, onReturnToForm }) {
     }
   };
 
+  // El resto del código sigue igual...
+  
   const addRow = () => {
     const updatedCriteria = [...criteria];
     if (updatedCriteria[currentCriterion]) {
-      updatedCriteria[currentCriterion].rows.push(Array(numColumns + 1).fill(''));
+      const newRow = {
+        descripcion: '',
+        weight: 0,
+        ...Array.from({ length: numColumns }).reduce((acc, _, i) => {
+          acc[`puntaje_${i}`] = '';
+          return acc;
+        }, {})
+      };
+      updatedCriteria[currentCriterion].rows.push(newRow);
       setCriteria(updatedCriteria);
     }
   };
@@ -215,44 +207,61 @@ function Matrix({ formData, onReturnToForm }) {
     }
   };
 
-  // Función para cambiar a modo previsualización
   const previewRubric = () => {
     setIsPreview(true);
-    setWarningMessage(''); // Limpiar mensajes previos
+    setWarningMessage('');
   };
 
-  // Función para regresar al modo de edición desde la previsualización
   const backToEdit = () => {
     setIsPreview(false);
+    setWarningMessage(''); // Limpiar cualquier mensaje de advertencia
+    setSuccessMessage(''); // Limpiar el mensaje de éxito al regresar a edición
   };
 
-  // Función para guardar la rúbrica
-  const saveRubric = () => {
-    // Validación: Verificar que cada criterio tenga al menos una fila
-    const hasEmptyRows = criteria.some(criterion => criterion.rows.length === 0);
-    if (hasEmptyRows) {
-      setWarningMessage("Advertencia: Debe tener al menos una fila para cada criterio.");
-      return;
-    }
+  const [successMessage, setSuccessMessage] = useState(''); // Estado para manejar el mensaje de éxito
 
-    // Validación: Verificar que todas las columnas de cada fila tengan texto
-    const hasEmptyCells = criteria.some(criterion =>
-      criterion.rows.some(row => row.some(cell => cell.trim() === ''))
-    );
-    if (hasEmptyCells) {
-      setWarningMessage("Advertencia: Todas las columnas de cada fila deben contener texto.");
-      return;
-    }
-
-    // Confirmación
-    const confirmSave = window.confirm("¿Está seguro de que desea guardar la rúbrica?");
-    if (confirmSave) {
-      // Aquí puedes agregar la lógica para guardar la rúbrica en tu backend
-      // Por ahora, simplemente redirige a /rubrics/create con el mensaje de éxito
-      navigate('/rubrics/create', { state: { successMessage: "¡Se ha guardado la rúbrica!" } });
+  const saveRubric = async () => {
+    const rubricData = {
+      titulo: formData.titulo,
+      descripcion: formData.descripcion,
+      cantidad_criterios: numCriteria,
+      cantidad_columnas: numColumns,
+      creador_id: 1, // Hardcodeado por ahora
+      publica: false, // Valor predeterminado
+      fecha_creacion: formData.fecha, // Asegúrate de que esté enviando la fecha correcta
+      autor: formData.autor,
+      area_general: formData.areaGeneral,
+      area_especifica: formData.areaEspecifica,
+      aspecto_evaluar: formData.aspectoEvaluar,
+      tipo_proyecto_id: 2 // Hardcodeado por ahora
+    };
+  
+    try {
+      const response = await fetch('http://localhost:5000/rubricas/crear', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(rubricData),
+      });
+  
+      if (!response.ok) {
+        throw new Error('Error en la solicitud POST');
+      }
+  
+      const data = await response.json();
+      console.log("Rubrica guardada:", data);
+      setSuccessMessage("¡La rúbrica se ha guardado exitosamente!");
+  
+      setTimeout(() => {
+        setSuccessMessage('');
+      }, 3000);
+    } catch (error) {
+      console.error("Error al guardar la rúbrica:", error);
+      setWarningMessage("Hubo un error al guardar la rúbrica.");
     }
   };
-
+    
   const resetSetup = () => {
     setSetupComplete(false);
     setCriteria([]);
@@ -261,16 +270,28 @@ function Matrix({ formData, onReturnToForm }) {
     setCurrentCriterion(0);
     setSelectedRow(null);
     setIsPreview(false);
-    setWarningMessage(''); // Limpiar mensajes
+    setWarningMessage('');
   };
 
   return (
     <div className="matrix-container">
-
       <h2>Matriz de Evaluación</h2>
 
+      {/* Mostrar mensaje de éxito */}
+      {successMessage && (
+        <div className="success-message">
+          {successMessage}
+        </div>
+      )}
+
+      {/* Mostrar mensaje de advertencia si es necesario */}
+      {warningMessage && (
+        <div className="warning-message">
+          {warningMessage}
+        </div>
+      )}
+
       {!setupComplete ? (
-        // Vista de configuración inicial
         <div className="setup-box">
           <div className="setup-section">
             <div className="setup-input">
@@ -301,18 +322,10 @@ function Matrix({ formData, onReturnToForm }) {
               Iniciar
             </button>
           </div>
-          {/* Botón "Regresar" añadido aquí */}
-          <button onClick={onReturnToForm} className="reset-button">Regresar</button>
+          <button onClick={resetSetup} className="reset-button">Regresar</button>
         </div>
       ) : isPreview ? (
-        // Vista de previsualización
         <div className="preview-section">
-          {/* Mostrar mensaje de advertencia si existe */}
-          {warningMessage && (
-            <div className="warning-message">
-              {warningMessage}
-            </div>
-          )}
 
           <PreviewRubric criteria={criteria} numColumns={numColumns} />
 
@@ -322,10 +335,8 @@ function Matrix({ formData, onReturnToForm }) {
           </div>
         </div>
       ) : criteria[currentCriterion] ? (
-        // Vista de edición de criterios
         <div className="criterion-section">
           <div className="criterion-container">
-            {/* Título "Criterio #" */}
             <h3 className="criterion-number">Criterio {currentCriterion + 1}</h3>
 
             <input
@@ -343,6 +354,7 @@ function Matrix({ formData, onReturnToForm }) {
                   {Array.from({ length: numColumns }, (_, i) => (
                     <th key={i}>{i + 1} PTOS</th>
                   ))}
+                  <th>PESO (%)</th>
                 </tr>
               </thead>
               <tbody>
@@ -376,7 +388,6 @@ function Matrix({ formData, onReturnToForm }) {
               )}
             </div>
           </div>
-          {/* Botón "Regresar al paso inicial" debajo del cuadro blanco */}
           <button onClick={resetSetup} className="reset-button">Regresar al paso inicial</button>
         </div>
       ) : null}
@@ -384,10 +395,9 @@ function Matrix({ formData, onReturnToForm }) {
   );
 }
 
-// Componente para una fila de la tabla
 function RubricRow({ rowIndex, row, numColumns, handleDescriptionChange, setSelectedRow, selectedRow }) {
-  const handleChange = (columnIndex, value) => {
-    handleDescriptionChange(rowIndex, columnIndex, value);
+  const handleChange = (field, value) => {
+    handleDescriptionChange(rowIndex, field, value);
   };
 
   return (
@@ -398,32 +408,62 @@ function RubricRow({ rowIndex, row, numColumns, handleDescriptionChange, setSele
       <td>
         <textarea
           placeholder="Descripción del criterio"
-          value={row[0]}
-          onChange={(e) => handleChange(0, e.target.value)}
+          value={row.descripcion || ''}
+          onChange={(e) => handleChange('descripcion', e.target.value)}
           className="text-box large-text-box"
         />
       </td>
-      {row.slice(1).map((cell, columnIndex) => (
+
+      {Array.from({ length: numColumns }).map((_, columnIndex) => (
         <td key={columnIndex}>
           <textarea
             placeholder={`${columnIndex + 1} PTOS`}
-            value={cell}
-            onChange={(e) => handleChange(columnIndex + 1, e.target.value)}
+            value={row[`puntaje_${columnIndex}`] || ''}
+            onChange={(e) => handleChange(`puntaje_${columnIndex}`, e.target.value)}
             className="text-box large-text-box"
           />
         </td>
       ))}
+
+      <td>
+        <input
+          type="range"
+          min="0"
+          max="100"
+          value={row.weight || 0}
+          onChange={(e) => handleChange('weight', e.target.value)}
+          className="slider"
+        />
+        <input
+          type="number"
+          min="0"
+          max="100"
+          value={row.weight || 0}
+          onChange={(e) => {
+            const value = e.target.value;
+            if (value >= 0 && value <= 100) {
+              handleChange('weight', value);
+            }
+          }}
+          onBlur={(e) => {
+            let value = parseInt(e.target.value);
+            if (isNaN(value) || value < 0) value = 0;
+            if (value > 100) value = 100;
+            handleChange('weight', value);
+          }}
+          className="percentage-input"
+        />%
+      </td>
+
     </tr>
   );
 }
 
-// Componente para la vista de previsualización
 function PreviewRubric({ criteria, numColumns }) {
   return (
     <div className="preview-container">
       {criteria.map((criterion, criterionIndex) => (
         <div key={criterionIndex} className="preview-criterion">
-          {/* Muestra "Criterio #: [Nombre]" */}
           <h3>Criterio {criterionIndex + 1}: {criterion.name || 'Sin nombre'}</h3>
           <table className="preview-table">
             <thead>
@@ -432,15 +472,17 @@ function PreviewRubric({ criteria, numColumns }) {
                 {Array.from({ length: numColumns }, (_, i) => (
                   <th key={i}>{i + 1} PTOS</th>
                 ))}
+                <th>Peso (%)</th>
               </tr>
             </thead>
             <tbody>
               {criterion.rows.map((row, rowIndex) => (
                 <tr key={rowIndex}>
-                  <td>{row[0]}</td>
-                  {row.slice(1).map((cell, colIndex) => (
-                    <td key={colIndex}>{cell}</td>
+                  <td>{row.descripcion || 'Sin descripción'}</td>
+                  {Array.from({ length: numColumns }).map((_, colIndex) => (
+                    <td key={colIndex}>{row[`puntaje_${colIndex}`] || ''}</td>
                   ))}
+                  <td>{row.weight || 0}%</td>
                 </tr>
               ))}
             </tbody>
