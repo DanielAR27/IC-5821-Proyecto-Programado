@@ -1,0 +1,26 @@
+/* src/components/Navbar.css */
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    background-color: #a9a9a9; /* Azul */
+    color: white;
+  }
+  
+  .navbar-left {
+    font-size: 24px;
+    font-weight: bold;
+  }
+  
+  .navbar-right a {
+    color: white;
+    margin-left: 15px;
+    text-decoration: none;
+    font-weight: bold;
+  }
+  
+  .navbar-right a:hover {
+    text-decoration: underline; /* Añadir subrayado al pasar el ratón */
+  }
+  

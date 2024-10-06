@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import './ShowRubrics.css';
+import Navbar from './Navbar'; // Importamos el nuevo navbar
 import { FaSearch } from 'react-icons/fa';
 
-function ShowRubrics() {
+function ShowRubrics({ userRole }) {
   const [rubrics, setRubrics] = useState([]);
   const [showRubricDetails, setShowRubricDetails] = useState(false);
   const [rubricDetails, setRubricDetails] = useState(null);
@@ -39,7 +40,9 @@ function ShowRubrics() {
 
   return (
     <div className="show-rubrics-wrapper">
-      <div className="header">Rúbricas Públicas</div>
+      <Navbar role={userRole} />
+      {/* Eliminar la línea siguiente */}
+      {/* <div className="header">Rúbricas Públicas</div> */}
 
       <div className="rubrics-container">
         {rubrics.length > 0 ? (
@@ -65,7 +68,6 @@ function ShowRubrics() {
           <div className="modal-content">
             <h2>{rubricDetails.titulo}</h2>
             <p>{rubricDetails.descripcion}</p>
-            
             {rubricDetails.criterios && rubricDetails.criterios.map((criterio, index) => (
               <div key={index} className="criterio-container">
                 <h3>{criterio.nombrecriterio}</h3>
@@ -93,7 +95,6 @@ function ShowRubrics() {
                 </table>
               </div>
             ))}
-
             <button onClick={handleCloseModal}>Aceptar</button>
           </div>
         </div>

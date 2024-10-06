@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './CreateRubric.css';
+import Navbar from './Navbar'; // Importa el Navbar
 
 /*TODO: Queda por modificar 
 1) El creador debe seleccionar el tipo de propuesta para la rúbrica?
@@ -7,7 +8,7 @@ o eso debería hacerlo manualmente el administrador?
 2) El id_creador debe estar dado por el login actual del creador.
 */
 
-function CreateRubric() {
+function CreateRubric({ roles }) {
   const [formData, setFormData] = useState({
     autor: '',
     fecha: '',
@@ -37,9 +38,14 @@ function CreateRubric() {
     }
   };
 
+  const handleReturnToForm = (returnedFormData) => {
+    setFormData(returnedFormData); // Actualiza el formData con el que se regresó
+    setShowMatrix(false); // Muestra nuevamente el formulario
+  };
+
   return (
     <div className="create-rubric-wrapper">
-      <div className="header">Rubrics App</div>
+      <Navbar role={roles} /> {/* Agrega el Navbar aquí */}
 
       {!showMatrix ? (
         <div className="create-rubric-container">
@@ -127,11 +133,13 @@ function CreateRubric() {
           </button>
         </div>
       ) : (
-        <Matrix formData={formData} />
+        <Matrix formData={formData} onReturnToForm={handleReturnToForm} />
       )}
     </div>
   );
 }
+
+
 
 function Matrix({ formData, onReturnToForm }) {
   const [numColumns, setNumColumns] = useState(0);
@@ -237,8 +245,14 @@ function Matrix({ formData, onReturnToForm }) {
       return total + criterion.rows.reduce((sum, row) => sum + (row.weight || 0), 0);
     }, 0);
 
+    console.log("suma porcentajes: ", totalPercentage);
+    const isTotalPercentageValid = parseInt(totalPercentage, 10) === 100; // Convertir a entero para comparar
+    console.log(isTotalPercentageValid); // Esto debería ser true si la suma es 100
+
+
     // Validar que la suma total de los porcentajes sea 100
-    if (totalPercentage !== 100) {
+    if (!isTotalPercentageValid) {
+      console.log("we are here idk why.")
       setWarningMessage("La suma total de los porcentajes de los subcriterios debe ser 100%.");
       return;
     }
@@ -369,13 +383,11 @@ function Matrix({ formData, onReturnToForm }) {
               Iniciar
             </button>
           </div>
-          <button onClick={resetSetup} className="reset-button">Regresar</button>
+          <button onClick={() => onReturnToForm(formData)} className="reset-button">Regresar</button>
         </div>
       ) : isPreview ? (
         <div className="preview-section">
-
           <PreviewRubric criteria={criteria} numColumns={numColumns} />
-
           <div className="preview-buttons">
             <button onClick={backToEdit} className="edit-button">Regresar a edición</button>
             <button onClick={saveRubric} className="save-button">Guardar</button>
@@ -425,15 +437,25 @@ function Matrix({ formData, onReturnToForm }) {
             </div>
 
             <div className="navigation-buttons">
-              {currentCriterion > 0 && (
-                <button onClick={prevCriterion} className="nav-button">Regresar</button>
-              )}
+              <button 
+                onClick={() => {
+                  if (currentCriterion === 0) {
+                    resetSetup(); // Reinicia todo si es el primer criterio
+                  } else {
+                    prevCriterion(); // Vuelve al criterio anterior
+                  }
+                }} 
+                className="nav-button"
+              >
+                Regresar
+              </button>
               {currentCriterion < numCriteria - 1 ? (
                 <button onClick={nextCriterion} className="nav-button">Siguiente</button>
               ) : (
                 <button onClick={previewRubric} className="nav-button preview-button">Previsualizar</button>
               )}
             </div>
+
           </div>
           <button onClick={resetSetup} className="reset-button">Regresar al paso inicial</button>
         </div>
@@ -464,7 +486,7 @@ function RubricRow({ rowIndex, row, numColumns, handleDescriptionChange, setSele
       {Array.from({ length: numColumns }).map((_, columnIndex) => (
         <td key={columnIndex}>
           <textarea
-            placeholder={`${columnIndex + 1} PTOS`}
+            placeholder={`${columnIndex} PTOS`}
             value={row[`puntaje_${columnIndex}`] || ''}
             onChange={(e) => handleChange(`puntaje_${columnIndex}`, e.target.value)}
             className="text-box large-text-box"
@@ -517,7 +539,7 @@ function PreviewRubric({ criteria, numColumns }) {
               <tr>
                 <th>Descripción</th>
                 {Array.from({ length: numColumns }, (_, i) => (
-                  <th key={i}>{i + 1} PTOS</th>
+                  <th key={i}>{i} PTOS</th>
                 ))}
                 <th>Peso (%)</th>
               </tr>

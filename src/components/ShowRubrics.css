@@ -1,17 +1,7 @@
-/* Contenedor general */
-.show-rubrics-wrapper {
-    width: 100%;
-  }
-  
-  /* Estilo para el header */
-  .header {
-    background-color: #a9a9a9;
-    padding: 20px;
-    font-size: 24px;
-    font-weight: bold;
-    text-align: left;
-    color: black;
-  }
+  /* Contenedor general */
+  .show-rubrics-wrapper {
+      width: 100%;
+    }
   
   /* Contenedor de las rúbricas */
   .rubrics-container {
