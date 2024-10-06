@@ -12,13 +12,16 @@
 }
 
 /* Encabezado */
+/* Estilo para el header */
 .header {
-  background-color: #a9a9a9; /* Gris más oscuro */
+  background-color: #a9a9a9;
   padding: 20px;
-  text-align: left; /* Alinear texto a la izquierda */
   font-size: 24px;
   font-weight: bold;
+  text-align: left;
+  color: black; /* Aseguramos que el título se mantenga negro */
 }
+
 
 /* Mensaje de Éxito */
 .success-message {

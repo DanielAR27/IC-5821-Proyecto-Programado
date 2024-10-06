@@ -1,5 +1,6 @@
 const express = require('express');
 const pool = require('./config/db'); // Importar la conexión a la base de datos
+const bcrypt = require('bcrypt');
 const cors = require('cors');
 
 const app = express();
@@ -64,6 +65,17 @@ app.post('/rubricas/crear', async (req, res) => {
   }
 });
 
+// Ruta para obtener las rúbricas públicas
+app.get('/rubricas/publicas', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT RubricaID, Titulo, Autor FROM Rubricas WHERE Publica = true');
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error al obtener las rúbricas públicas:', error);
+    res.status(500).json({ error: 'Error al obtener las rúbricas públicas.' });
+  }
+});
+
 // Ruta para obtener una rúbrica por su ID
 // Ruta para obtener una rúbrica específica
 app.get('/rubricas/:id', async (req, res) => {
@@ -83,7 +95,6 @@ app.get('/rubricas/:id', async (req, res) => {
     const criteriosResult = await pool.query('SELECT * FROM Criterios WHERE RubricaID = $1', [id]);
     const criterios = criteriosResult.rows;
 
-    console.log(criterios);
     
     for (const criterio of criteriosResult.rows) {
       const subcriteriosResult = await pool.query(
@@ -112,7 +123,75 @@ app.get('/rubricas/:id', async (req, res) => {
   }
 });
 
+// Ruta para registrar un nuevo usuario
+app.post('/register', async (req, res) => {
+  const { nombre, apellido, correo, contraseña } = req.body;
 
+  try {
+    // Verificar si el correo ya existe
+    const existingUser = await pool.query('SELECT * FROM Usuarios WHERE Correo = $1', [correo]);
+    
+    if (existingUser.rows.length > 0) {
+      // El correo ya existe, enviar mensaje de error
+      return res.status(400).json({ error: 'El correo ya se encuentra asociado a una cuenta.' });
+    }
+
+    // Encriptar la contraseña antes de guardarla
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(contraseña, salt);
+
+    // Insertar el nuevo usuario
+    const result = await pool.query(
+      'INSERT INTO Usuarios (Nombre, Apellido, Correo, Contraseña) VALUES ($1, $2, $3, $4) RETURNING UsuarioID',
+      [nombre, apellido, correo, hashedPassword]
+    );
+
+    const userId = result.rows[0].usuarioid;
+
+    // Asignar el rol de 'Consultor' por defecto (TipoUsuarioID = 1)
+    await pool.query('INSERT INTO RolesAsignados (UsuarioID, TipoUsuarioID) VALUES ($1, 1)', [userId]);
+
+    // Enviar respuesta de éxito
+    res.status(201).json({ message: 'Usuario registrado exitosamente' });
+
+  } catch (error) {
+    console.error('Error en el servidor:', error);
+    res.status(500).json({ error: 'Hubo un problema al registrar el usuario' });
+  }
+});
+
+// Ruta para iniciar sesión
+app.post('/login', async (req, res) => {
+  const { correo, contraseña } = req.body;
+
+  if (!correo || !contraseña) {
+    return res.status(400).json({ error: 'Faltan datos obligatorios.' });
+  }
+
+  try {
+    // 1. Buscar el usuario por correo
+    const result = await pool.query('SELECT * FROM Usuarios WHERE Correo = $1', [correo]);
+    
+    if (result.rows.length === 0) {
+      return res.status(401).json({ error: 'Credenciales incorrectas. Intente de nuevo.' });
+    }
+
+    const user = result.rows[0];
+
+    // 2. Verificar la contraseña desencriptada usando bcrypt
+    const validPassword = await bcrypt.compare(contraseña, user.contraseña);
+    if (!validPassword) {
+      return res.status(401).json({ error: 'Credenciales incorrectas. Intente de nuevo.' });
+    }
+
+    // 3. Si la contraseña es válida, iniciar sesión exitosamente
+    res.status(200).json({ message: 'Inicio de sesión exitoso', usuarioId: user.usuarioid });
+    
+  } catch (error) {
+    console.error('Error al iniciar sesión:', error);
+    res.status(500).json({ error: 'Hubo un error en el servidor.' });
+  }
+});
 
 // Iniciar el servidor en el puerto 5000
 const PORT = process.env.PORT || 5000;
