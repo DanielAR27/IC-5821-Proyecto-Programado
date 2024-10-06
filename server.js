@@ -64,6 +64,55 @@ app.post('/rubricas/crear', async (req, res) => {
   }
 });
 
+// Ruta para obtener una rúbrica por su ID
+// Ruta para obtener una rúbrica específica
+app.get('/rubricas/:id', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    // Obtener la rúbrica por ID
+    const rubricaResult = await pool.query('SELECT * FROM Rubricas WHERE RubricaID = $1', [id]);
+
+    if (rubricaResult.rows.length === 0) {
+      return res.status(404).json({ message: 'Rúbrica no encontrada' });
+    }
+
+    const rubrica = rubricaResult.rows[0];
+
+    // Obtener los criterios de la rúbrica
+    const criteriosResult = await pool.query('SELECT * FROM Criterios WHERE RubricaID = $1', [id]);
+    const criterios = criteriosResult.rows;
+
+    console.log(criterios);
+    
+    for (const criterio of criteriosResult.rows) {
+      const subcriteriosResult = await pool.query(
+        'SELECT * FROM Subcriterios WHERE CriterioID = $1 ORDER BY Orden',
+        [criterio.criterioid]
+      );
+    
+      criterio.subcriterios = subcriteriosResult.rows;
+    
+      // Paso 3: Consulta las Columnas para cada Subcriterio
+      for (const subcriterio of subcriteriosResult.rows) {
+        const columnasResult = await pool.query(
+          'SELECT * FROM Columnas WHERE SubcriterioID = $1 ORDER BY Orden',
+          [subcriterio.subcriterioid]
+        );
+    
+        subcriterio.columnas = columnasResult.rows; // Añade las columnas al subcriterio
+      }
+    }
+    
+    // Devolver la rúbrica con sus criterios, subcriterios y columnas
+    res.json({ ...rubrica, criterios });
+  } catch (error) {
+    console.error('Error al obtener la rúbrica:', error);  // Esto imprimirá el error detalladamente
+    res.status(500).json({ message: 'Error al obtener la rúbrica' });
+  }
+});
+
+
 
 // Iniciar el servidor en el puerto 5000
 const PORT = process.env.PORT || 5000;

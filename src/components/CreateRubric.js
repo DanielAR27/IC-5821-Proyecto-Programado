@@ -231,7 +231,30 @@ function Matrix({ formData, onReturnToForm }) {
       setWarningMessage("No hay criterios definidos. Por favor, agregue criterios.");
       return;
     }
-  
+
+    // Calcular la suma total de los porcentajes de todas las filas (subcriterios)
+    const totalPercentage = criteria.reduce((total, criterion) => {
+      return total + criterion.rows.reduce((sum, row) => sum + (row.weight || 0), 0);
+    }, 0);
+
+    // Validar que la suma total de los porcentajes sea 100
+    if (totalPercentage !== 100) {
+      setWarningMessage("La suma total de los porcentajes de los subcriterios debe ser 100%.");
+      return;
+    }
+
+      // Validar que todas las casillas de las columnas (textoColumna) tengan un valor
+    for (const criterion of criteria) {
+      for (const row of criterion.rows) {
+        for (let indexCol = 0; indexCol < numColumns; indexCol++) {
+          if (!row[`puntaje_${indexCol}`] || row[`puntaje_${indexCol}`].trim() === "") {
+            setWarningMessage("Todos los campos de las columnas deben estar llenos.");
+            return;
+          }
+        }
+      }
+    }
+    
     const rubricData = {
       titulo: formData.titulo,
       descripcion: formData.descripcion,
