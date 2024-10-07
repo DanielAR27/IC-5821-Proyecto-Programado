@@ -193,6 +193,29 @@ app.post('/login', async (req, res) => {
   }
 });
 
+app.get('/roles/:userId', async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    const rolesResult = await pool.query(
+      `SELECT tu.nombretipo 
+       FROM RolesAsignados ra 
+       JOIN TiposUsuario tu ON ra.tipousuarioid = tu.tipousuarioid 
+       WHERE ra.usuarioid = $1`, 
+      [userId]
+    );
+
+    const roles = rolesResult.rows.map(row => row.nombretipo);
+    
+    res.json(roles);
+  } catch (error) {
+    console.error('Error al obtener roles:', error);
+    res.status(500).json({ message: 'Error al obtener roles' });
+  }
+});
+
+
+
 // Iniciar el servidor en el puerto 5000
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

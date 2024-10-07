@@ -1,21 +1,29 @@
 import React from 'react';
+import { Link } from 'react-router-dom'; // Importa Link de react-router-dom
 import './Navbar.css';
 
-const Navbar = ({ role }) => {
-  const getOptions = () => {
-    switch (role) {
-      case 'administrador':
-        return ['Crear Rúbrica', 'Ver Rúbricas', 'Gestión de Usuarios'];
-      case 'creador':
-        return ['Crear Rúbrica', 'Ver Rúbricas'];
-      case 'evaluador':
-        return ['Evaluar Rúbricas', 'Ver Rúbricas'];
-      case 'consultor':
-        return ['Ver Rúbricas'];
-      default:
-        return [];
+const Navbar = ({ roles }) => {
+  const getNavbarOptions = (roles = []) => {
+    const options = []; // Inicializa opciones
+
+    if (roles.includes('Administrador')) {
+      options.push('Listar rúbricas públicas', 'Listar rúbricas creadas', 'Crear rúbricas', 'Listar rúbricas disponibles');
+    } else if (roles.includes('Creador')) {
+      options.push('Listar rúbricas públicas', 'Crear rúbricas', 'Listar rúbricas creadas');
     }
+
+    if (roles.includes('Evaluador')) {
+      options.push('Listar rúbricas públicas', 'Evaluar rúbricas');
+    }
+
+    if (roles.includes('Consultor')) {
+      options.push('Listar rúbricas públicas');
+    }
+
+    return options;
   };
+
+  const options = getNavbarOptions(roles); // Usa roles para obtener las opciones
 
   return (
     <nav className="navbar">
@@ -23,11 +31,25 @@ const Navbar = ({ role }) => {
         <span>Rubrics App</span>
       </div>
       <div className="navbar-right">
-        {getOptions().map((option, index) => (
-          <a key={index} href={`/${option.replace(/\s+/g, '-').toLowerCase()}`}>
-            {option}
-          </a>
-        ))}
+        {options.map((option, index) => {
+          let route = '';
+          switch (option) {
+            case 'Listar rúbricas públicas':
+              route = '/rubrics/show_rubrics';
+              break;
+            case 'Crear rúbricas':
+              route = '/rubrics/create'; // Cambia según la ruta correcta
+              break;
+            default:
+              break;
+          }
+
+          return (
+            <Link key={index} to={route} state={{roles}}>
+              {option}
+            </Link>
+          );
+        })}
       </div>
     </nav>
   );

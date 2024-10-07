@@ -2,8 +2,11 @@ import React, { useEffect, useState } from 'react';
 import './ShowRubrics.css';
 import Navbar from './Navbar'; // Importamos el nuevo navbar
 import { FaSearch } from 'react-icons/fa';
+import { useLocation } from 'react-router-dom';
 
-function ShowRubrics({ userRole }) {
+function ShowRubrics() {
+  const location = useLocation();
+  const roles = location.state?.roles || []; // Obtén los roles del estado
   const [rubrics, setRubrics] = useState([]);
   const [showRubricDetails, setShowRubricDetails] = useState(false);
   const [rubricDetails, setRubricDetails] = useState(null);
@@ -40,10 +43,7 @@ function ShowRubrics({ userRole }) {
 
   return (
     <div className="show-rubrics-wrapper">
-      <Navbar role={userRole} />
-      {/* Eliminar la línea siguiente */}
-      {/* <div className="header">Rúbricas Públicas</div> */}
-
+      <Navbar roles={roles} /> {/* Asegúrate de que roles sea pasado correctamente */}
       <div className="rubrics-container">
         {rubrics.length > 0 ? (
           rubrics.map((rubric, index) => (

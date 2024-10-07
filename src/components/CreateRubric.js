@@ -1,14 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import './CreateRubric.css';
 import Navbar from './Navbar'; // Importa el Navbar
+import { useLocation } from 'react-router-dom';
 
-/*TODO: Queda por modificar 
-1) El creador debe seleccionar el tipo de propuesta para la rúbrica?
-o eso debería hacerlo manualmente el administrador?
-2) El id_creador debe estar dado por el login actual del creador.
-*/
-
-function CreateRubric({ roles }) {
+function CreateRubric() {
+  const location = useLocation();
+  const roles = location.state?.roles || []; // Obtén los roles del estado
   const [formData, setFormData] = useState({
     autor: '',
     fecha: '',
@@ -18,7 +15,6 @@ function CreateRubric({ roles }) {
     areaEspecifica: 'opción #1',
     aspectoEvaluar: 'opción #1',
   });
-
   const [showMatrix, setShowMatrix] = useState(false);
   const [isButtonDisabled, setIsButtonDisabled] = useState(true);
 
@@ -45,7 +41,7 @@ function CreateRubric({ roles }) {
 
   return (
     <div className="create-rubric-wrapper">
-      <Navbar role={roles} /> {/* Agrega el Navbar aquí */}
+      <Navbar roles={roles} /> {/* Agrega el Navbar aquí */}
 
       {!showMatrix ? (
         <div className="create-rubric-container">
@@ -138,8 +134,6 @@ function CreateRubric({ roles }) {
     </div>
   );
 }
-
-
 
 function Matrix({ formData, onReturnToForm }) {
   const [numColumns, setNumColumns] = useState(0);

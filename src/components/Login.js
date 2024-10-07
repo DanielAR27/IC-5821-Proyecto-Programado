@@ -7,19 +7,17 @@ const Login = () => {
   const location = useLocation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [successMessage, setSuccessMessage] = useState(''); // Estado para el mensaje de éxito
+  const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
 
-  // Detectar si el parámetro de éxito está presente
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     if (params.get('registered') === 'true') {
       setSuccessMessage('¡Se ha registrado exitosamente!');
-      // Borrar el mensaje después de 3 segundos
       const timer = setTimeout(() => {
         setSuccessMessage('');
       }, 3000);
-      return () => clearTimeout(timer); // Limpiar el temporizador al desmontar
+      return () => clearTimeout(timer);
     }
   }, [location]);
 
@@ -27,7 +25,7 @@ const Login = () => {
     if (errorMessage) {
       const timer = setTimeout(() => {
         setErrorMessage('');
-      }, 3000); // Borrar el mensaje después de 3 segundos
+      }, 3000);
       return () => clearTimeout(timer);
     }
   }, [errorMessage]);
@@ -47,7 +45,11 @@ const Login = () => {
       const data = await response.json();
 
       if (response.ok) {
-        navigate('/rubrics/show_rubrics');
+        // Guarda el ID del usuario y los roles en el contexto
+        const rolesResponse = await fetch(`http://localhost:5000/roles/${data.usuarioId}`);
+        const roles = await rolesResponse.json();
+
+        navigate('/rubrics/show_rubrics',  { state: { roles } });
       } else {
         setErrorMessage(data.error || 'Correo o contraseña incorrecto.');
       }
@@ -58,10 +60,7 @@ const Login = () => {
 
   return (
     <div className="login-page">
-      {/* Mostrar mensaje de éxito ARRIBA del cuadro de inicio de sesión */}
       {successMessage && <div className="success-message">{successMessage}</div>}
-
-      {/* Mostrar mensaje de error ARRIBA del cuadro de inicio de sesión */}
       {errorMessage && <div className="error-message">{errorMessage}</div>}
       
       <div className="login-container">
