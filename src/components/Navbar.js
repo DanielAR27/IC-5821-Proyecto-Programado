@@ -12,7 +12,7 @@ const Navbar = ({ roles }) => {
       options.push('Listar rúbricas públicas', 'Crear rúbricas', 'Listar rúbricas creadas');
     }
 
-    if (roles.includes('Evaluador')) {
+    if (roles.includes('EvaluadorCOMITE', 'EvaluadorEXTENSION')) {
       options.push('Listar rúbricas públicas', 'Evaluar rúbricas');
     }
 
