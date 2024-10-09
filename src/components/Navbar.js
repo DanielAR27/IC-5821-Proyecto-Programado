@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom'; // Importa Link de react-router-dom
 import './Navbar.css';
 
-const Navbar = ({ roles }) => {
+const Navbar = ({ roles, userId }) => {
   const getNavbarOptions = (roles = []) => {
     const options = []; // Inicializa opciones
 
@@ -40,12 +40,15 @@ const Navbar = ({ roles }) => {
             case 'Crear rúbricas':
               route = '/rubrics/create'; // Cambia según la ruta correcta
               break;
+            case 'Listar rúbricas creadas':
+              route = '/rubrics/show_created_rubrics';
+              break;
             default:
               break;
           }
 
           return (
-            <Link key={index} to={route} state={{roles}}>
+            <Link key={index} to={route} state={{roles, userId}}>
               {option}
             </Link>
           );

@@ -6,6 +6,8 @@ import { useLocation } from 'react-router-dom';
 function CreateRubric() {
   const location = useLocation();
   const roles = location.state?.roles || []; // Obtén los roles del estado
+  const userId = location.state?.userId;
+
   const [formData, setFormData] = useState({
     autor: '',
     fecha: '',
@@ -41,7 +43,7 @@ function CreateRubric() {
 
   return (
     <div className="create-rubric-wrapper">
-      <Navbar roles={roles} /> {/* Agrega el Navbar aquí */}
+      <Navbar roles={roles} userId={userId} /> {/* Agrega el Navbar aquí */}
 
       {!showMatrix ? (
         <div className="create-rubric-container">
@@ -136,6 +138,9 @@ function CreateRubric() {
 }
 
 function Matrix({ formData, onReturnToForm }) {
+  const location = useLocation();
+  const creadorId = location.state?.userId;
+
   const [numColumns, setNumColumns] = useState(0);
   const [numCriteria, setNumCriteria] = useState(0);
   const [currentCriterion, setCurrentCriterion] = useState(0);
@@ -246,7 +251,6 @@ function Matrix({ formData, onReturnToForm }) {
 
     // Validar que la suma total de los porcentajes sea 100
     if (!isTotalPercentageValid) {
-      console.log("we are here idk why.")
       setWarningMessage("La suma total de los porcentajes de los subcriterios debe ser 100%.");
       return;
     }
@@ -268,7 +272,7 @@ function Matrix({ formData, onReturnToForm }) {
       descripcion: formData.descripcion,
       cantidad_criterios: numCriteria,
       cantidad_columnas: numColumns,
-      creador_id: 1, // Hardcodeado por ahora
+      creador_id: creadorId,
       publica: false,
       fecha_creacion: formData.fecha,
       autor: formData.autor,
@@ -287,7 +291,9 @@ function Matrix({ formData, onReturnToForm }) {
         }))
       }))
     };
-  
+    
+    console.log("Creador es: ", creadorId);
+
     try {
       const response = await fetch('http://localhost:5000/rubricas/crear', {
         method: 'POST',

@@ -6,6 +6,7 @@ import Register from './components/Register';
 import CreateRubric from './components/CreateRubric';
 import EvaluateRubric from './components/EvaluateRubric';
 import ShowRubrics from './components/ShowRubrics';
+import ShowCreatedRubrics from './components/ShowCreatedRubrics'
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
           <Route path="/rubrics/create" element={<CreateRubric />} />
           <Route path="/rubrics/evaluate/:id" element={<EvaluateRubric />} />
           <Route path="/rubrics/show_rubrics" element={<ShowRubrics />} />
+          <Route path="/rubrics/show_created_rubrics" element={<ShowCreatedRubrics />} />
         </Routes>
       </Router>
   );

@@ -1,50 +1,53 @@
 import React, { useEffect, useState } from 'react';
-import './ShowRubrics.css';
-import Navbar from './Navbar'; // Importamos el nuevo navbar
+import './ShowCreatedRubrics.css';
+import Navbar from './Navbar';
 import { FaSearch } from 'react-icons/fa';
 import { useLocation } from 'react-router-dom';
 
-function ShowRubrics() {
+function ShowCreatedRubrics() {
   const location = useLocation();
   const roles = location.state?.roles || []; // Obtén los roles del estado
-  const userId = location.state?.userId;
+  const creadorId = location.state?.userId; // Asegúrate de pasar el userId en la navegación
   const [rubrics, setRubrics] = useState([]);
-  const [showRubricDetails, setShowRubricDetails] = useState(false);
+  const [showCreatedRubricDetails, setShowCreatedRubricDetails] = useState(false);
   const [rubricDetails, setRubricDetails] = useState(null);
+
+  console.log("Creador id: ", creadorId);
 
   useEffect(() => {
     const fetchRubrics = async () => {
       try {
-        const response = await fetch('http://localhost:5000/rubricas/publicas');
+        const response = await fetch(`http://localhost:5000/rubricas/creadas/${creadorId}`);
         const data = await response.json();
+        console.log("Info obtenida: ", data);
         setRubrics(data);
       } catch (error) {
-        console.error('Error al cargar las rúbricas:', error);
+        console.error('Error al cargar las rúbricas creadas:', error);
       }
     };
 
     fetchRubrics();
-  }, []);
+  }, [creadorId]);
 
   const handleMagicSearch = async (rubric) => {
     try {
       const response = await fetch(`http://localhost:5000/rubricas/${rubric.rubricaid}`);
       const data = await response.json();
       setRubricDetails(data);
-      setShowRubricDetails(true);
+      setShowCreatedRubricDetails(true);
     } catch (error) {
       console.error('Error al obtener la rúbrica:', error);
     }
   };
 
   const handleCloseModal = () => {
-    setShowRubricDetails(false);
+    setShowCreatedRubricDetails(false);
     setRubricDetails(null);
   };
 
   return (
     <div className="show-rubrics-wrapper">
-      <Navbar roles={roles} userId={userId} /> {/* Asegúrate de que roles sea pasado correctamente */}
+      <Navbar roles={roles} userId={creadorId} /> {/* Asegúrate de que roles sea pasado correctamente */}
       <div className="rubrics-container">
         {rubrics.length > 0 ? (
           rubrics.map((rubric, index) => (
@@ -59,12 +62,12 @@ function ShowRubrics() {
             </div>
           ))
         ) : (
-          <p>No hay rúbricas públicas disponibles.</p>
+          <p>No hay rúbricas creadas disponibles.</p>
         )}
       </div>
 
       {/* Modal para mostrar los detalles de la rúbrica */}
-      {showRubricDetails && (
+      {showCreatedRubricDetails && (
         <div className="modal-overlay">
           <div className="modal-content">
             <h2>{rubricDetails.titulo}</h2>
@@ -104,4 +107,4 @@ function ShowRubrics() {
   );
 }
 
-export default ShowRubrics;
+export default ShowCreatedRubrics;

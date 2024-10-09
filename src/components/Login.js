@@ -32,7 +32,7 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
+  
     try {
       const response = await fetch('http://localhost:5000/login', {
         method: 'POST',
@@ -41,15 +41,15 @@ const Login = () => {
         },
         body: JSON.stringify({ correo: email, contraseña: password }),
       });
-
+  
       const data = await response.json();
-
+  
       if (response.ok) {
-        // Guarda el ID del usuario y los roles en el contexto
+        // Guarda el ID del usuario y los roles en el estado de navegación
         const rolesResponse = await fetch(`http://localhost:5000/roles/${data.usuarioId}`);
         const roles = await rolesResponse.json();
-
-        navigate('/rubrics/show_rubrics',  { state: { roles } });
+        // Navegar con el userId y los roles
+        navigate('/rubrics/show_rubrics', { state: { roles, userId: data.usuarioId } });
       } else {
         setErrorMessage(data.error || 'Correo o contraseña incorrecto.');
       }
@@ -57,7 +57,7 @@ const Login = () => {
       setErrorMessage('Hubo un error al conectar con el servidor.');
     }
   };
-
+  
   return (
     <div className="login-page">
       {successMessage && <div className="success-message">{successMessage}</div>}

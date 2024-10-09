@@ -76,6 +76,24 @@ app.get('/rubricas/publicas', async (req, res) => {
   }
 });
 
+// Ruta para obtener las rúbricas creadas por un usuario específico
+app.get('/rubricas/creadas/:userId', async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    // Asegúrate de que la consulta sea correcta y devuelva las rúbricas creadas por el usuario
+    const result = await pool.query(
+      'SELECT RubricaID, Titulo, Autor FROM Rubricas WHERE CreadorID = $1',
+      [userId]
+    );
+
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error al obtener las rúbricas creadas:', error);
+    res.status(500).json({ error: 'Error al obtener las rúbricas creadas.' });
+  }
+});
+
 // Ruta para obtener una rúbrica por su ID
 // Ruta para obtener una rúbrica específica
 app.get('/rubricas/:id', async (req, res) => {
