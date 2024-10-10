@@ -3,6 +3,7 @@ import './ShowRubrics.css';
 import Navbar from './Navbar'; // Importamos el nuevo navbar
 import { FaSearch } from 'react-icons/fa';
 import { useLocation } from 'react-router-dom';
+import loadingImage from '../components/loading_image.gif'; // Importa la imagen de carga
 
 function ShowRubrics() {
   const location = useLocation();
@@ -11,6 +12,7 @@ function ShowRubrics() {
   const [rubrics, setRubrics] = useState([]);
   const [showRubricDetails, setShowRubricDetails] = useState(false);
   const [rubricDetails, setRubricDetails] = useState(null);
+  const [loading, setLoading] = useState(true); // Estado para controlar si está cargando
 
   useEffect(() => {
     const fetchRubrics = async () => {
@@ -20,6 +22,8 @@ function ShowRubrics() {
         setRubrics(data);
       } catch (error) {
         console.error('Error al cargar las rúbricas:', error);
+      } finally {
+        setLoading(false); // Deja de cargar cuando la solicitud termina
       }
     };
 
@@ -44,9 +48,14 @@ function ShowRubrics() {
 
   return (
     <div className="show-rubrics-wrapper">
-      <Navbar roles={roles} userId={userId} /> {/* Asegúrate de que roles sea pasado correctamente */}
+      <Navbar roles={roles} userId={userId} /> {/* Asegúrate de que roles sean pasados correctamente */}
       <div className="rubrics-container">
-        {rubrics.length > 0 ? (
+        {loading ? (
+          <div className="loading-message">
+            <p>Cargando información, espere un momento por favor...</p>
+            <img src={loadingImage} alt="Cargando..." className="loading-gif" />
+          </div>
+        ) : rubrics.length > 0 ? (
           rubrics.map((rubric, index) => (
             <div key={index} className="rubric-item">
               <div className="rubric-info">

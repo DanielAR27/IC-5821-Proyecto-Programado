@@ -43,6 +43,9 @@ const Navbar = ({ roles, userId }) => {
             case 'Listar rúbricas creadas':
               route = '/rubrics/show_created_rubrics';
               break;
+            case 'Listar rúbricas disponibles':
+              route = '/rubrics/show_available_rubrics';
+              break;
             default:
               break;
           }

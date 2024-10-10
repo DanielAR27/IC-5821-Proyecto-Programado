@@ -1,43 +1,43 @@
 import React, { useEffect, useState } from 'react';
-import './ShowCreatedRubrics.css';
+import './ShowAvailableRubrics.css';
 import Navbar from './Navbar';
-import { FaSearch, FaPen, FaTrash } from 'react-icons/fa';
+import { FaSearch, FaPen, FaTrash, FaChartBar } from 'react-icons/fa';
 import { useLocation } from 'react-router-dom';
-import loadingGif from './loading_image.gif'; 
+import loadingGif from './loading_image.gif';
 
-function ShowCreatedRubrics() {
+function ShowAvailableRubrics() {
   const location = useLocation();
   const roles = location.state?.roles || [];
   const creadorId = location.state?.userId;
   const [rubrics, setRubrics] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [showCreatedRubricDetails, setShowCreatedRubricDetails] = useState(false);
+  const [showRubricDetails, setShowRubricDetails] = useState(false);
   const [rubricDetails, setRubricDetails] = useState(null);
-  const [successMessage, setSuccessMessage] = useState(''); // Estado para el mensaje de éxito
-  const [confirmDelete, setConfirmDelete] = useState(null); // Estado para la confirmación de borrado
+  const [successMessage, setSuccessMessage] = useState('');
+  const [confirmDelete, setConfirmDelete] = useState(null);
 
   useEffect(() => {
     const fetchRubrics = async () => {
       try {
-        const response = await fetch(`http://localhost:5000/rubricas/creadas/${creadorId}`);
+        const response = await fetch('http://localhost:5000/rubricas/disponibles');
         const data = await response.json();
         setRubrics(data);
       } catch (error) {
-        console.error('Error al cargar las rúbricas creadas:', error);
+        console.error('Error al cargar las rúbricas disponibles:', error);
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchRubrics();
-  }, [creadorId]);
+  }, []);
 
   const handleMagicSearch = async (rubric) => {
     try {
       const response = await fetch(`http://localhost:5000/rubricas/${rubric.rubricaid}`);
       const data = await response.json();
       setRubricDetails(data);
-      setShowCreatedRubricDetails(true);
+      setShowRubricDetails(true);
     } catch (error) {
       console.error('Error al obtener la rúbrica:', error);
     }
@@ -48,8 +48,34 @@ function ShowCreatedRubrics() {
   };
 
   const handleDelete = (rubric) => {
-    setConfirmDelete(rubric); // Mostrar confirmación de eliminación
+    setConfirmDelete(rubric);
   };
+
+  const togglePublicStatus = async (rubric) => {
+    try {
+      const newPublicStatus = !rubric.publica; // Cambia el estado de publica
+      const response = await fetch(`http://localhost:5000/rubricas/${rubric.rubricaid}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ publica: newPublicStatus }),
+      });
+  
+      if (response.ok) {
+        setRubrics((prevRubrics) =>
+          prevRubrics.map((r) =>
+            r.rubricaid === rubric.rubricaid ? { ...r, publica: newPublicStatus } : r
+          )
+        );
+      } else {
+        console.error('Error al actualizar el estado de pública de la rúbrica.');
+      }
+    } catch (error) {
+      console.error('Error al actualizar el estado de pública de la rúbrica:', error);
+    }
+  };
+  
 
   const confirmDeleteRubric = async () => {
     if (!confirmDelete) return;
@@ -61,28 +87,28 @@ function ShowCreatedRubrics() {
 
       if (response.ok) {
         const data = await response.json();
-        setRubrics(rubrics.filter(r => r.rubricaid !== confirmDelete.rubricaid)); // Actualizar la lista
-        setSuccessMessage(data.message); // Mostrar el mensaje de éxito
-        setTimeout(() => setSuccessMessage(''), 3000); // Limpiar el mensaje después de 3 segundos
+        setRubrics(rubrics.filter(r => r.rubricaid !== confirmDelete.rubricaid));
+        setSuccessMessage(data.message);
+        setTimeout(() => setSuccessMessage(''), 3000);
       } else {
         console.error('Error al eliminar la rúbrica');
       }
     } catch (error) {
       console.error('Error al eliminar la rúbrica:', error);
     } finally {
-      setConfirmDelete(null); // Cerrar la confirmación
+      setConfirmDelete(null);
     }
   };
 
   const handleCloseModal = () => {
-    setShowCreatedRubricDetails(false);
+    setShowRubricDetails(false);
     setRubricDetails(null);
   };
 
   return (
     <div className="show-rubrics-wrapper">
       <Navbar roles={roles} userId={creadorId} />
-      {successMessage && <div className="success-message">{successMessage}</div>} {/* Mensaje de éxito */}
+      {successMessage && <div className="success-message">{successMessage}</div>}
       <div className="rubrics-container">
         {isLoading ? (
           <div className="loading-message">
@@ -99,12 +125,21 @@ function ShowCreatedRubrics() {
               <div className="rubric-icons">
                 <FaSearch className="icon" onClick={() => handleMagicSearch(rubric)} />
                 <FaPen className="icon" onClick={() => handleEdit(rubric)} />
+                <FaChartBar className="icon" />
+                <label className="switch">
+                  <input
+                    type="checkbox"
+                    checked={rubric.publica}
+                    onChange={() => togglePublicStatus(rubric)}
+                  />
+                  <span className="slider round"></span>
+                </label>
                 <FaTrash className="icon" onClick={() => handleDelete(rubric)} />
               </div>
             </div>
           ))
         ) : (
-          <p>No hay rúbricas creadas disponibles.</p>
+          <p>No hay rúbricas disponibles.</p>
         )}
       </div>
 
@@ -126,9 +161,7 @@ function ShowCreatedRubrics() {
         )}
 
 
-
-
-      {showCreatedRubricDetails && (
+      {showRubricDetails && (
         <div className="modal-overlay">
           <div className="modal-content">
             <h2>{rubricDetails.titulo}</h2>
@@ -168,4 +201,4 @@ function ShowCreatedRubrics() {
   );
 }
 
-export default ShowCreatedRubrics;
+export default ShowAvailableRubrics;

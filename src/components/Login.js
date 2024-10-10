@@ -11,15 +11,15 @@ const Login = () => {
   const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    if (params.get('registered') === 'true') {
-      setSuccessMessage('¡Se ha registrado exitosamente!');
+    if (location.state?.successMessage) {
+      setSuccessMessage(location.state.successMessage);
       const timer = setTimeout(() => {
         setSuccessMessage('');
       }, 3000);
       return () => clearTimeout(timer);
     }
-  }, [location]);
+  }, [location.state]);
+  
 
   useEffect(() => {
     if (errorMessage) {
@@ -29,6 +29,7 @@ const Login = () => {
       return () => clearTimeout(timer);
     }
   }, [errorMessage]);
+  
 
   const handleSubmit = async (e) => {
     e.preventDefault();

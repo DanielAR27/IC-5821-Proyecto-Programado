@@ -39,17 +39,17 @@ function Register() {
       const data = await response.json();
   
       if (response.ok) {
-        // Redirigir a la página de login con el parámetro de éxito
-        navigate('/?registered=true');
+        // Redirigir a la página de inicio con un mensaje de éxito
+        navigate('/', { state: { successMessage: '¡Se ha creado su cuenta exitosamente!' } });
       } else {
-        setErrorMessage(data.error || 'Error al registrarse.');  // <-- Asegúrate de que se muestra el mensaje específico
+        setErrorMessage(data.error || 'Error al registrarse.');
       }
     } catch (error) {
       setErrorMessage('Hubo un error al conectar con el servidor.');
     }
   };
   
-
+  
   return (
     <div className="register-container">
       {/* Mostrar mensaje de error ARRIBA de la caja de registro */}

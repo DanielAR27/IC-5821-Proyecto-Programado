@@ -76,6 +76,21 @@ app.get('/rubricas/publicas', async (req, res) => {
   }
 });
 
+// Ruta para obtener todas las rúbricas disponibles
+app.get('/rubricas/disponibles', async (req, res) => {
+  try {
+    // Consulta para obtener todas las rúbricas de la tabla Rubricas
+    const result = await pool.query(
+      'SELECT RubricaID, Titulo, Autor, Publica FROM Rubricas'
+    );
+
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error al obtener las rúbricas disponibles:', error);
+    res.status(500).json({ error: 'Error al obtener las rúbricas disponibles.' });
+  }
+});
+
 // Ruta para obtener las rúbricas creadas por un usuario específico
 app.get('/rubricas/creadas/:userId', async (req, res) => {
   const { userId } = req.params;
@@ -95,7 +110,6 @@ app.get('/rubricas/creadas/:userId', async (req, res) => {
 });
 
 // Ruta para obtener una rúbrica por su ID
-// Ruta para obtener una rúbrica específica
 app.get('/rubricas/:id', async (req, res) => {
   const { id } = req.params;
 
@@ -138,6 +152,51 @@ app.get('/rubricas/:id', async (req, res) => {
   } catch (error) {
     console.error('Error al obtener la rúbrica:', error);  // Esto imprimirá el error detalladamente
     res.status(500).json({ message: 'Error al obtener la rúbrica' });
+  }
+});
+
+// Ruta para actualizar el estado de "publica" de una rúbrica
+// Ruta para actualizar el estado de "publica" de una rúbrica
+app.put('/rubricas/:id', async (req, res) => {
+  const { id } = req.params; // Cambiar a 'id'
+  const { publica } = req.body;
+
+  try {
+    // Actualizar el estado de "publica" en la base de datos
+    const result = await pool.query(
+      'UPDATE Rubricas SET Publica = $1 WHERE RubricaID = $2 RETURNING *',
+      [publica, id] // Cambiar a 'id'
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Rúbrica no encontrada.' });
+    }
+
+    res.json({ message: 'Estado de la rúbrica actualizado correctamente.', rubrica: result.rows[0] });
+  } catch (error) {
+    console.error('Error al actualizar el estado de la rúbrica:', error);
+    res.status(500).json({ error: 'Error al actualizar el estado de la rúbrica.' });
+  }
+});
+
+
+
+// Ruta para eliminar una rúbrica por su ID
+app.delete('/rubricas/:id', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    // Eliminar la rúbrica por ID
+    const result = await pool.query('DELETE FROM Rubricas WHERE RubricaID = $1', [id]);
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: 'Rúbrica no encontrada' });
+    }
+
+    res.json({ message: `¡Se ha borrado la rúbrica exitosamente!` });
+  } catch (error) {
+    console.error('Error al eliminar la rúbrica:', error);
+    res.status(500).json({ message: 'Error al eliminar la rúbrica' });
   }
 });
 
@@ -231,8 +290,6 @@ app.get('/roles/:userId', async (req, res) => {
     res.status(500).json({ message: 'Error al obtener roles' });
   }
 });
-
-
 
 // Iniciar el servidor en el puerto 5000
 const PORT = process.env.PORT || 5000;
