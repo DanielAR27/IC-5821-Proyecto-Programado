@@ -147,15 +147,14 @@ function Matrix({ formData, onReturnToForm }) {
   const [criteria, setCriteria] = useState([]);
   const [setupComplete, setSetupComplete] = useState(false);
   const [selectedRow, setSelectedRow] = useState(null);
-
   const [isPreview, setIsPreview] = useState(false);
-  const [warningMessage, setWarningMessage] = useState(''); // Ya usado
+  const [warningMessage, setWarningMessage] = useState('');
 
   const handleStart = () => {
     if (numColumns > 0 && numCriteria > 0) {
       const initialCriteria = Array.from({ length: numCriteria }, () => ({
         name: '',
-        rows: []
+        rows: [],
       }));
       setCriteria(initialCriteria);
       setSetupComplete(true);
@@ -163,8 +162,6 @@ function Matrix({ formData, onReturnToForm }) {
     }
   };
 
-  // El resto del código sigue igual...
-  
   const addRow = () => {
     const updatedCriteria = [...criteria];
     if (updatedCriteria[currentCriterion]) {
@@ -174,7 +171,7 @@ function Matrix({ formData, onReturnToForm }) {
         ...Array.from({ length: numColumns }).reduce((acc, _, i) => {
           acc[`puntaje_${i}`] = '';
           return acc;
-        }, {})
+        }, {}),
       };
       updatedCriteria[currentCriterion].rows.push(newRow);
       setCriteria(updatedCriteria);
@@ -227,46 +224,52 @@ function Matrix({ formData, onReturnToForm }) {
 
   const backToEdit = () => {
     setIsPreview(false);
-    setWarningMessage(''); // Limpiar cualquier mensaje de advertencia
-    setSuccessMessage(''); // Limpiar el mensaje de éxito al regresar a edición
+    setWarningMessage('');
   };
 
-  const [successMessage, setSuccessMessage] = useState(''); // Estado para manejar el mensaje de éxito
+  const [successMessage, setSuccessMessage] = useState('');
 
   const saveRubric = async () => {
     if (!criteria || criteria.length === 0) {
-      setWarningMessage("No hay criterios definidos. Por favor, agregue criterios.");
+      setWarningMessage('No hay criterios definidos. Por favor, agregue criterios.');
       return;
     }
 
-    // Calcular la suma total de los porcentajes de todas las filas (subcriterios)
-    const totalPercentage = criteria.reduce((total, criterion) => {
-      return total + criterion.rows.reduce((sum, row) => sum + (row.weight || 0), 0);
-    }, 0);
-
-    console.log("suma porcentajes: ", totalPercentage);
-    const isTotalPercentageValid = parseInt(totalPercentage, 10) === 100; // Convertir a entero para comparar
-    console.log(isTotalPercentageValid); // Esto debería ser true si la suma es 100
-
-
-    // Validar que la suma total de los porcentajes sea 100
-    if (!isTotalPercentageValid) {
-      setWarningMessage("La suma total de los porcentajes de los subcriterios debe ser 100%.");
+  // Validación de que cada criterio tiene una descripción
+  for (const criterion of criteria) {
+    if (!criterion.name || criterion.name.trim() === '') {
+      setWarningMessage('Cada criterio debe tener una descripción.');
       return;
     }
 
-      // Validar que todas las casillas de las columnas (textoColumna) tengan un valor
-    for (const criterion of criteria) {
-      for (const row of criterion.rows) {
-        for (let indexCol = 0; indexCol < numColumns; indexCol++) {
-          if (!row[`puntaje_${indexCol}`] || row[`puntaje_${indexCol}`].trim() === "") {
-            setWarningMessage("Todos los campos de las columnas deben estar llenos.");
-            return;
-          }
+    // Validación de que cada subcriterio tiene una descripción y todas las columnas están llenas
+    for (const row of criterion.rows) {
+      if (!row.descripcion || row.descripcion.trim() === '') {
+        setWarningMessage('Cada subcriterio debe tener una descripción.');
+        return;
+      }
+      
+      for (let indexCol = 0; indexCol < numColumns; indexCol++) {
+        if (!row[`puntaje_${indexCol}`] || row[`puntaje_${indexCol}`].trim() === '') {
+          setWarningMessage(`Cada columna debe tener un valor en los subcriterios del criterio ${criterion.name}.`);
+          return;
         }
       }
     }
+  }
+
+    const totalPercentage = criteria.reduce((total, criterion) => {
+      return total + criterion.rows.reduce((sum, row) => sum + (parseFloat(row.weight) || 0), 0);
+    }, 0);
     
+    console.log(totalPercentage);
+    
+    if (totalPercentage !== 100) {
+      setWarningMessage('La suma total de los porcentajes de los subcriterios debe ser 100%.');
+      return;
+    }
+    
+
     const rubricData = {
       titulo: formData.titulo,
       descripcion: formData.descripcion,
@@ -286,13 +289,11 @@ function Matrix({ formData, onReturnToForm }) {
           descripcion: row.descripcion || `Subcriterio ${indexRow + 1}`,
           porcentaje: row.weight || 0,
           columnas: Array.from({ length: numColumns }, (_, indexCol) => ({
-            textoColumna: row[`puntaje_${indexCol}`] || '' // Las columnas ahora se asocian a cada fila (subcriterio)
-          }))
-        }))
-      }))
+            textoColumna: row[`puntaje_${indexCol}`] || '',
+          })),
+        })),
+      })),
     };
-    
-    console.log("Creador es: ", creadorId);
 
     try {
       const response = await fetch('http://localhost:5000/rubricas/crear', {
@@ -302,27 +303,22 @@ function Matrix({ formData, onReturnToForm }) {
         },
         body: JSON.stringify(rubricData),
       });
-  
+
       if (!response.ok) {
         throw new Error('Error en la solicitud POST');
       }
-  
-      const data = await response.json();
-      console.log("Rubrica guardada:", data);
-      setSuccessMessage("¡La rúbrica se ha guardado exitosamente!");
-  
+
+      await response.json();
+      setSuccessMessage('¡La rúbrica se ha guardado exitosamente!');
+
       setTimeout(() => {
         setSuccessMessage('');
       }, 3000);
-  
     } catch (error) {
-      console.error("Error al guardar la rúbrica:", error);
-      if (!warningMessage) {
-        setWarningMessage("Hubo un error al guardar la rúbrica.");
-      }
+      setWarningMessage('Hubo un error al guardar la rúbrica.');
     }
   };
-  
+
   const resetSetup = () => {
     setSetupComplete(false);
     setCriteria([]);
@@ -338,19 +334,8 @@ function Matrix({ formData, onReturnToForm }) {
     <div className="matrix-container">
       <h2>Matriz de Evaluación</h2>
 
-      {/* Mostrar mensaje de éxito */}
-      {successMessage && (
-        <div className="success-message">
-          {successMessage}
-        </div>
-      )}
-
-      {/* Mostrar mensaje de advertencia si es necesario */}
-      {warningMessage && (
-        <div className="warning-message">
-          {warningMessage}
-        </div>
-      )}
+      {successMessage && <div className="success-message">{successMessage}</div>}
+      {warningMessage && <div className="warning-message">{warningMessage}</div>}
 
       {!setupComplete ? (
         <div className="setup-box">
@@ -375,22 +360,24 @@ function Matrix({ formData, onReturnToForm }) {
                 onChange={(e) => setNumCriteria(parseInt(e.target.value))}
               />
             </div>
-            <button
-              className="start-button"
-              onClick={handleStart}
-              disabled={numColumns <= 0 || numCriteria <= 0}
-            >
+            <button className="start-button" onClick={handleStart} disabled={numColumns <= 0 || numCriteria <= 0}>
               Iniciar
             </button>
           </div>
-          <button onClick={() => onReturnToForm(formData)} className="reset-button">Regresar</button>
+          <button onClick={() => onReturnToForm(formData)} className="reset-button">
+            Regresar
+          </button>
         </div>
       ) : isPreview ? (
         <div className="preview-section">
           <PreviewRubric criteria={criteria} numColumns={numColumns} />
           <div className="preview-buttons">
-            <button onClick={backToEdit} className="edit-button">Regresar a edición</button>
-            <button onClick={saveRubric} className="save-button">Guardar</button>
+            <button onClick={backToEdit} className="edit-button">
+              Regresar a edición
+            </button>
+            <button onClick={saveRubric} className="save-button">
+              Guardar
+            </button>
           </div>
         </div>
       ) : criteria[currentCriterion] ? (
@@ -432,32 +419,41 @@ function Matrix({ formData, onReturnToForm }) {
             </table>
 
             <div className="add-row-buttons">
-              <button onClick={addRow} className="add-button">+</button>
-              <button onClick={deleteRow} disabled={selectedRow === null} className="delete-button">x</button>
+              <button onClick={addRow} className="add-button">
+                +
+              </button>
+              <button onClick={deleteRow} disabled={selectedRow === null} className="delete-button">
+                x
+              </button>
             </div>
 
             <div className="navigation-buttons">
-              <button 
+              <button
                 onClick={() => {
                   if (currentCriterion === 0) {
-                    resetSetup(); // Reinicia todo si es el primer criterio
+                    resetSetup();
                   } else {
-                    prevCriterion(); // Vuelve al criterio anterior
+                    prevCriterion();
                   }
-                }} 
+                }}
                 className="nav-button"
               >
                 Regresar
               </button>
               {currentCriterion < numCriteria - 1 ? (
-                <button onClick={nextCriterion} className="nav-button">Siguiente</button>
+                <button onClick={nextCriterion} className="nav-button">
+                  Siguiente
+                </button>
               ) : (
-                <button onClick={previewRubric} className="nav-button preview-button">Previsualizar</button>
+                <button onClick={previewRubric} className="nav-button preview-button">
+                  Previsualizar
+                </button>
               )}
             </div>
-
           </div>
-          <button onClick={resetSetup} className="reset-button">Regresar al paso inicial</button>
+          <button onClick={resetSetup} className="reset-button">
+            Regresar al paso inicial
+          </button>
         </div>
       ) : null}
     </div>
@@ -470,10 +466,7 @@ function RubricRow({ rowIndex, row, numColumns, handleDescriptionChange, setSele
   };
 
   return (
-    <tr
-      onClick={() => setSelectedRow(rowIndex)}
-      className={selectedRow === rowIndex ? 'selected-row' : ''}
-    >
+    <tr onClick={() => setSelectedRow(rowIndex)} className={selectedRow === rowIndex ? 'selected-row' : ''}>
       <td>
         <textarea
           placeholder="Descripción del criterio"
@@ -486,7 +479,7 @@ function RubricRow({ rowIndex, row, numColumns, handleDescriptionChange, setSele
       {Array.from({ length: numColumns }).map((_, columnIndex) => (
         <td key={columnIndex}>
           <textarea
-            placeholder={`${columnIndex} PTOS`}
+            placeholder={`${columnIndex + 1} PTOS`}
             value={row[`puntaje_${columnIndex}`] || ''}
             onChange={(e) => handleChange(`puntaje_${columnIndex}`, e.target.value)}
             className="text-box large-text-box"
@@ -495,35 +488,31 @@ function RubricRow({ rowIndex, row, numColumns, handleDescriptionChange, setSele
       ))}
 
       <td>
-        <input
-          type="range"
-          min="0"
-          max="100"
-          value={row.weight || 0}
-          onChange={(e) => handleChange('weight', e.target.value)}
-          className="slider"
-        />
-        <input
-          type="number"
-          min="0"
-          max="100"
-          value={row.weight || 0}
-          onChange={(e) => {
-            const value = e.target.value;
-            if (value >= 0 && value <= 100) {
+        <div className="slider-percentage-container">
+          <input
+            type="range"
+            min="0"
+            max="100"
+            value={row.weight || 0}
+            onChange={(e) => handleChange('weight', e.target.value)}
+          />
+          <input
+            type="number"
+            min="0"
+            max="100"
+            value={row.weight || 0}
+            onChange={(e) => {
+              let value = parseInt(e.target.value);
+              if (isNaN(value)) value = 0;
+              if (value < 0) value = 0;
+              if (value > 100) value = 100;
               handleChange('weight', value);
-            }
-          }}
-          onBlur={(e) => {
-            let value = parseInt(e.target.value);
-            if (isNaN(value) || value < 0) value = 0;
-            if (value > 100) value = 100;
-            handleChange('weight', value);
-          }}
-          className="percentage-input"
-        />%
+            }}
+            className="percentage-input"
+          />
+          %
+        </div>
       </td>
-
     </tr>
   );
 }

@@ -11,18 +11,6 @@
   width: 100%;
 }
 
-/* Encabezado */
-/* Estilo para el header */
-.header {
-  background-color: #a9a9a9;
-  padding: 20px;
-  font-size: 24px;
-  font-weight: bold;
-  text-align: left;
-  color: black; /* Aseguramos que el título se mantenga negro */
-}
-
-
 /* Mensaje de Éxito */
 .success-message {
   max-width: 600px;
@@ -76,9 +64,6 @@
   resize: vertical;
   height: 100px;
 }
-
-/* Botón "Siguiente" */
-/* src/components/CreateRubric.css */
 
 /* Botón "Siguiente" */
 .next-button {
@@ -388,66 +373,8 @@ h2 {
   font-weight: bold;
 }
 
-/* Responsividad */
-@media (max-width: 768px) {
-  .rubric-table th,
-  .rubric-table td,
-  .preview-table th,
-  .preview-table td {
-    padding: 5px;
-    font-size: 12px;
-  }
-
-  .text-box {
-    height: 100px;
-    font-size: 14px;
-  }
-
-  .start-button,
-  .reset-button,
-  .add-row-buttons button,
-  .navigation-buttons .nav-button,
-  .preview-button,
-  .edit-button,
-  .save-button {
-    padding: 8px 16px;
-    font-size: 14px;
-  }
-
-  .preview-container {
-    max-width: 100%;
-  }
-
-  .criterion-number {
-    font-size: 16px;
-  }
-
-  .preview-buttons {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .preview-buttons button {
-    width: 100%;
-  }
-}
-
-
-/* Slider */
-.slider-container {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: 10px;
-}
-
-.slider {
-  width: 100%;
-  margin-right: 10px;
-}
-
 .percentage-input {
-  width: 60px;
-  padding: 5px;
+  width: 60px !important;
   text-align: center;
+  margin-left: 10px; /* Espacio entre el slider y el input */
 }
