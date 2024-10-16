@@ -282,7 +282,6 @@ function Matrix({ formData, onReturnToForm }) {
       area_general: formData.areaGeneral,
       area_especifica: formData.areaEspecifica,
       aspecto_evaluar: formData.aspectoEvaluar,
-      tipo_proyecto_id: 2,
       criterios: criteria.map((criterion, index) => ({
         nombre: criterion.name || `Criterio ${index + 1}`,
         subcriterios: criterion.rows.map((row, indexRow) => ({
@@ -488,7 +487,7 @@ function RubricRow({ rowIndex, row, numColumns, handleDescriptionChange, setSele
       ))}
 
       <td>
-        <div className="slider-percentage-container">
+        <div>
           <input
             type="range"
             min="0"

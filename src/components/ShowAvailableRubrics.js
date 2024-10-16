@@ -34,7 +34,7 @@ function ShowAvailableRubrics() {
 
   const handleMagicSearch = async (rubric) => {
     try {
-      const response = await fetch(`http://localhost:5000/rubricas/${rubric.rubricaid}`);
+      const response = await fetch(`http://localhost:5000/rubricas/${rubric.rubrica_id}`);
       const data = await response.json();
       setRubricDetails(data);
       setShowRubricDetails(true);
@@ -54,7 +54,7 @@ function ShowAvailableRubrics() {
   const togglePublicStatus = async (rubric) => {
     try {
       const newPublicStatus = !rubric.publica; // Cambia el estado de publica
-      const response = await fetch(`http://localhost:5000/rubricas/${rubric.rubricaid}`, {
+      const response = await fetch(`http://localhost:5000/rubricas/${rubric.rubrica_id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -65,7 +65,7 @@ function ShowAvailableRubrics() {
       if (response.ok) {
         setRubrics((prevRubrics) =>
           prevRubrics.map((r) =>
-            r.rubricaid === rubric.rubricaid ? { ...r, publica: newPublicStatus } : r
+            r.rubrica_id === rubric.rubrica_id ? { ...r, publica: newPublicStatus } : r
           )
         );
       } else {
@@ -81,13 +81,13 @@ function ShowAvailableRubrics() {
     if (!confirmDelete) return;
 
     try {
-      const response = await fetch(`http://localhost:5000/rubricas/${confirmDelete.rubricaid}`, {
+      const response = await fetch(`http://localhost:5000/rubricas/${confirmDelete.rubrica_id}`, {
         method: 'DELETE',
       });
 
       if (response.ok) {
         const data = await response.json();
-        setRubrics(rubrics.filter(r => r.rubricaid !== confirmDelete.rubricaid));
+        setRubrics(rubrics.filter(r => r.rubrica_id !== confirmDelete.rubrica_id));
         setSuccessMessage(data.message);
         setTimeout(() => setSuccessMessage(''), 3000);
       } else {

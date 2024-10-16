@@ -32,7 +32,7 @@ function ShowRubrics() {
 
   const handleMagicSearch = async (rubric) => {
     try {
-      const response = await fetch(`http://localhost:5000/rubricas/${rubric.rubricaid}`);
+      const response = await fetch(`http://localhost:5000/rubricas/${rubric.rubrica_id}`);
       const data = await response.json();
       setRubricDetails(data);
       setShowRubricDetails(true);

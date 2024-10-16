@@ -13,43 +13,42 @@ app.use(express.json()); // Analiza las solicitudes JSON
 app.post('/rubricas/crear', async (req, res) => {
   const {
     titulo, descripcion, cantidad_criterios, cantidad_columnas, creador_id, publica,
-    fecha_creacion, autor, area_general, area_especifica, aspecto_evaluar, tipo_proyecto_id,
-    criterios
+    fecha_creacion, autor, area_general, area_especifica, aspecto_evaluar, criterios
   } = req.body;
 
-  if (!titulo || !descripcion || !cantidad_criterios || !cantidad_columnas || !creador_id || !tipo_proyecto_id) {
+  if (!titulo || !descripcion || !cantidad_criterios || !cantidad_columnas || !creador_id) {
     return res.status(400).json({ error: 'Faltan datos obligatorios.' });
   }
 
   try {
     // 1. Guardar la rúbrica principal
     const resultRubrica = await pool.query(
-      `INSERT INTO Rubricas (Titulo, Descripcion, Cantidad_Criterios, Cantidad_Columnas, CreadorID, Publica, FechaCreacion, Autor, AreaGeneral, AreaEspecifica, AspectoEvaluar, TipoProyectoID)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING RubricaID`,
-      [titulo, descripcion, cantidad_criterios, cantidad_columnas, creador_id, publica || false, fecha_creacion, autor, area_general, area_especifica, aspecto_evaluar, tipo_proyecto_id]
+      `INSERT INTO Rubricas (Titulo, Descripcion, Cantidad_Criterios, Cantidad_Columnas, Creador_ID, Publica, FechaCreacion, Autor, AreaGeneral, AreaEspecifica, AspectoEvaluar)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING Rubrica_ID`,
+      [titulo, descripcion, cantidad_criterios, cantidad_columnas, creador_id, publica || false, fecha_creacion, autor, area_general, area_especifica, aspecto_evaluar]
     );
-    const rubricaId = resultRubrica.rows[0].rubricaid;
+    const rubricaId = resultRubrica.rows[0].rubrica_id;
 
     // 2. Guardar los criterios
     for (const [indexCriterio, criterio] of criterios.entries()) {
       const resultCriterio = await pool.query(
-        `INSERT INTO Criterios (RubricaID, NombreCriterio, Orden) VALUES ($1, $2, $3) RETURNING CriterioID`,
+        `INSERT INTO Criterios (Rubrica_ID, NombreCriterio, Orden) VALUES ($1, $2, $3) RETURNING Criterio_ID`,
         [rubricaId, criterio.nombre, indexCriterio]
       );
-      const criterioId = resultCriterio.rows[0].criterioid;
+      const criterioId = resultCriterio.rows[0].criterio_id;
 
       // 3. Guardar los subcriterios (filas) de cada criterio
       for (const [indexSubcriterio, subcriterio] of criterio.subcriterios.entries()) {
         const resultSubcriterio = await pool.query(
-          `INSERT INTO Subcriterios (CriterioID, Descripcion, Porcentaje, Orden) VALUES ($1, $2, $3, $4) RETURNING SubcriterioID`,
+          `INSERT INTO Subcriterios (Criterio_ID, Descripcion, Porcentaje, Orden) VALUES ($1, $2, $3, $4) RETURNING Subcriterio_ID`,
           [criterioId, subcriterio.descripcion, subcriterio.porcentaje, indexSubcriterio]
         );
-        const subcriterioId = resultSubcriterio.rows[0].subcriterioid;
+        const subcriterioId = resultSubcriterio.rows[0].subcriterio_id;
 
         // 4. Guardar las columnas asociadas a cada subcriterio
         for (const [indexColumna, columna] of subcriterio.columnas.entries()) {
           await pool.query(
-            `INSERT INTO Columnas (SubcriterioID, TextoColumna, Orden) VALUES ($1, $2, $3)`,
+            `INSERT INTO Columnas (Subcriterio_ID, TextoColumna, Orden) VALUES ($1, $2, $3)`,
             [subcriterioId, columna.textoColumna, indexColumna]
           );
         }
@@ -68,7 +67,7 @@ app.post('/rubricas/crear', async (req, res) => {
 // Ruta para obtener las rúbricas públicas
 app.get('/rubricas/publicas', async (req, res) => {
   try {
-    const result = await pool.query('SELECT RubricaID, Titulo, Autor FROM Rubricas WHERE Publica = true');
+    const result = await pool.query('SELECT Rubrica_ID, Titulo, Autor FROM Rubricas WHERE Publica = true');
     res.json(result.rows);
   } catch (error) {
     console.error('Error al obtener las rúbricas públicas:', error);
@@ -81,7 +80,7 @@ app.get('/rubricas/disponibles', async (req, res) => {
   try {
     // Consulta para obtener todas las rúbricas de la tabla Rubricas
     const result = await pool.query(
-      'SELECT RubricaID, Titulo, Autor, Publica FROM Rubricas'
+      'SELECT Rubrica_ID, Titulo, Autor, Publica FROM Rubricas'
     );
 
     res.json(result.rows);
@@ -98,7 +97,7 @@ app.get('/rubricas/creadas/:userId', async (req, res) => {
   try {
     // Asegúrate de que la consulta sea correcta y devuelva las rúbricas creadas por el usuario
     const result = await pool.query(
-      'SELECT RubricaID, Titulo, Autor FROM Rubricas WHERE CreadorID = $1',
+      'SELECT Rubrica_ID, Titulo, Autor FROM Rubricas WHERE Creador_ID = $1',
       [userId]
     );
 
@@ -115,7 +114,7 @@ app.get('/rubricas/:id', async (req, res) => {
 
   try {
     // Obtener la rúbrica por ID
-    const rubricaResult = await pool.query('SELECT * FROM Rubricas WHERE RubricaID = $1', [id]);
+    const rubricaResult = await pool.query('SELECT * FROM Rubricas WHERE Rubrica_ID = $1', [id]);
 
     if (rubricaResult.rows.length === 0) {
       return res.status(404).json({ message: 'Rúbrica no encontrada' });
@@ -124,14 +123,14 @@ app.get('/rubricas/:id', async (req, res) => {
     const rubrica = rubricaResult.rows[0];
 
     // Obtener los criterios de la rúbrica
-    const criteriosResult = await pool.query('SELECT * FROM Criterios WHERE RubricaID = $1', [id]);
+    const criteriosResult = await pool.query('SELECT * FROM Criterios WHERE Rubrica_ID = $1', [id]);
     const criterios = criteriosResult.rows;
 
     
     for (const criterio of criteriosResult.rows) {
       const subcriteriosResult = await pool.query(
-        'SELECT * FROM Subcriterios WHERE CriterioID = $1 ORDER BY Orden',
-        [criterio.criterioid]
+        'SELECT * FROM Subcriterios WHERE Criterio_ID = $1 ORDER BY Orden',
+        [criterio.criterio_id]
       );
     
       criterio.subcriterios = subcriteriosResult.rows;
@@ -139,8 +138,8 @@ app.get('/rubricas/:id', async (req, res) => {
       // Paso 3: Consulta las Columnas para cada Subcriterio
       for (const subcriterio of subcriteriosResult.rows) {
         const columnasResult = await pool.query(
-          'SELECT * FROM Columnas WHERE SubcriterioID = $1 ORDER BY Orden',
-          [subcriterio.subcriterioid]
+          'SELECT * FROM Columnas WHERE Subcriterio_ID = $1 ORDER BY Orden',
+          [subcriterio.subcriterio_id]
         );
     
         subcriterio.columnas = columnasResult.rows; // Añade las columnas al subcriterio
@@ -156,7 +155,6 @@ app.get('/rubricas/:id', async (req, res) => {
 });
 
 // Ruta para actualizar el estado de "publica" de una rúbrica
-// Ruta para actualizar el estado de "publica" de una rúbrica
 app.put('/rubricas/:id', async (req, res) => {
   const { id } = req.params; // Cambiar a 'id'
   const { publica } = req.body;
@@ -164,7 +162,7 @@ app.put('/rubricas/:id', async (req, res) => {
   try {
     // Actualizar el estado de "publica" en la base de datos
     const result = await pool.query(
-      'UPDATE Rubricas SET Publica = $1 WHERE RubricaID = $2 RETURNING *',
+      'UPDATE Rubricas SET Publica = $1 WHERE Rubrica_ID = $2 RETURNING *',
       [publica, id] // Cambiar a 'id'
     );
 
@@ -187,7 +185,7 @@ app.delete('/rubricas/:id', async (req, res) => {
 
   try {
     // Eliminar la rúbrica por ID
-    const result = await pool.query('DELETE FROM Rubricas WHERE RubricaID = $1', [id]);
+    const result = await pool.query('DELETE FROM Rubricas WHERE Rubrica_ID = $1', [id]);
 
     if (result.rowCount === 0) {
       return res.status(404).json({ message: 'Rúbrica no encontrada' });
@@ -219,14 +217,15 @@ app.post('/register', async (req, res) => {
 
     // Insertar el nuevo usuario
     const result = await pool.query(
-      'INSERT INTO Usuarios (Nombre, Apellido, Correo, Contraseña) VALUES ($1, $2, $3, $4) RETURNING UsuarioID',
+      'INSERT INTO Usuarios (Nombre, Apellido, Correo, Contraseña) VALUES ($1, $2, $3, $4) RETURNING Usuario_ID',
       [nombre, apellido, correo, hashedPassword]
     );
 
-    const userId = result.rows[0].usuarioid;
+    const userId = result.rows[0].usuario_id;
+    console.log("userId: ", userId);
 
     // Asignar el rol de 'Consultor' por defecto (TipoUsuarioID = 1)
-    await pool.query('INSERT INTO RolesAsignados (UsuarioID, TipoUsuarioID) VALUES ($1, 1)', [userId]);
+    await pool.query('INSERT INTO RolesAsignados (Usuario_ID, TipoUsuario_ID) VALUES ($1, 1)', [userId]);
 
     // Enviar respuesta de éxito
     res.status(201).json({ message: 'Usuario registrado exitosamente' });
@@ -262,7 +261,7 @@ app.post('/login', async (req, res) => {
     }
 
     // 3. Si la contraseña es válida, iniciar sesión exitosamente
-    res.status(200).json({ message: 'Inicio de sesión exitoso', usuarioId: user.usuarioid });
+    res.status(200).json({ message: 'Inicio de sesión exitoso', usuarioId: user.usuario_id });
     
   } catch (error) {
     console.error('Error al iniciar sesión:', error);
@@ -277,8 +276,8 @@ app.get('/roles/:userId', async (req, res) => {
     const rolesResult = await pool.query(
       `SELECT tu.nombretipo 
        FROM RolesAsignados ra 
-       JOIN TiposUsuario tu ON ra.tipousuarioid = tu.tipousuarioid 
-       WHERE ra.usuarioid = $1`, 
+       JOIN TiposUsuario tu ON ra.tipousuario_id = tu.tipousuario_id 
+       WHERE ra.usuario_id = $1`, 
       [userId]
     );
 

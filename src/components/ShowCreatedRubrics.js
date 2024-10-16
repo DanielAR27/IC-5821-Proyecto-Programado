@@ -34,7 +34,7 @@ function ShowCreatedRubrics() {
 
   const handleMagicSearch = async (rubric) => {
     try {
-      const response = await fetch(`http://localhost:5000/rubricas/${rubric.rubricaid}`);
+      const response = await fetch(`http://localhost:5000/rubricas/${rubric.rubrica_id}`);
       const data = await response.json();
       setRubricDetails(data);
       setShowCreatedRubricDetails(true);
@@ -55,13 +55,13 @@ function ShowCreatedRubrics() {
     if (!confirmDelete) return;
 
     try {
-      const response = await fetch(`http://localhost:5000/rubricas/${confirmDelete.rubricaid}`, {
+      const response = await fetch(`http://localhost:5000/rubricas/${confirmDelete.rubrica_id}`, {
         method: 'DELETE',
       });
 
       if (response.ok) {
         const data = await response.json();
-        setRubrics(rubrics.filter(r => r.rubricaid !== confirmDelete.rubricaid)); // Actualizar la lista
+        setRubrics(rubrics.filter(r => r.rubrica_id !== confirmDelete.rubrica_id)); // Actualizar la lista
         setSuccessMessage(data.message); // Mostrar el mensaje de éxito
         setTimeout(() => setSuccessMessage(''), 3000); // Limpiar el mensaje después de 3 segundos
       } else {
