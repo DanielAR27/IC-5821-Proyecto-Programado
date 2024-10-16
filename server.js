@@ -154,6 +154,25 @@ app.get('/rubricas/:id', async (req, res) => {
   }
 });
 
+// Ruta para obtener solo la información básica de la rúbrica por ID
+app.get('/rubricas/basic/:id', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    // Obtener solo la rúbrica sin criterios
+    const rubricaResult = await pool.query('SELECT * FROM Rubricas WHERE Rubrica_ID = $1', [id]);
+    if (rubricaResult.rows.length === 0) {
+      return res.status(404).json({ message: 'Rúbrica no encontrada' });
+    }
+
+    res.json(rubricaResult.rows[0]); // Solo devuelve la rúbrica sin criterios
+  } catch (error) {
+    console.error('Error al obtener la rúbrica básica:', error);
+    res.status(500).json({ message: 'Error al obtener la rúbrica básica' });
+  }
+});
+
+
 // Ruta para actualizar el estado de "publica" de una rúbrica
 app.put('/rubricas/:id', async (req, res) => {
   const { id } = req.params; // Cambiar a 'id'

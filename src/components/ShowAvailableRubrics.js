@@ -2,13 +2,14 @@ import React, { useEffect, useState } from 'react';
 import './ShowAvailableRubrics.css';
 import Navbar from './Navbar';
 import { FaSearch, FaPen, FaTrash, FaChartBar } from 'react-icons/fa';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom'; // Importa useNavigate
 import loadingGif from './loading_image.gif';
 
 function ShowAvailableRubrics() {
   const location = useLocation();
+  const navigate = useNavigate(); // Inicializa useNavigate
   const roles = location.state?.roles || [];
-  const creadorId = location.state?.userId;
+  const adminId = location.state?.userId;
   const [rubrics, setRubrics] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showRubricDetails, setShowRubricDetails] = useState(false);
@@ -44,7 +45,12 @@ function ShowAvailableRubrics() {
   };
 
   const handleEdit = (rubric) => {
-    console.log("Editando rúbrica:", rubric);
+    navigate(`/rubrics/modify/${rubric.rubrica_id}`, {
+      state: {
+        roles: roles,
+        userId: adminId,
+      },
+    });
   };
 
   const handleDelete = (rubric) => {
@@ -76,7 +82,6 @@ function ShowAvailableRubrics() {
     }
   };
   
-
   const confirmDeleteRubric = async () => {
     if (!confirmDelete) return;
 
@@ -107,7 +112,7 @@ function ShowAvailableRubrics() {
 
   return (
     <div className="show-rubrics-wrapper">
-      <Navbar roles={roles} userId={creadorId} />
+      <Navbar roles={roles} userId={adminId} />
       {successMessage && <div className="success-message">{successMessage}</div>}
       <div className="rubrics-container">
         {isLoading ? (
@@ -124,7 +129,7 @@ function ShowAvailableRubrics() {
               </div>
               <div className="rubric-icons">
                 <FaSearch className="icon" onClick={() => handleMagicSearch(rubric)} />
-                <FaPen className="icon" onClick={() => handleEdit(rubric)} />
+                <FaPen className="icon" onClick={() => handleEdit(rubric)} /> {/* Editar rúbrica */}
                 <FaChartBar className="icon" />
                 <label className="switch">
                   <input
@@ -159,7 +164,6 @@ function ShowAvailableRubrics() {
             </div>
         </div>
         )}
-
 
       {showRubricDetails && (
         <div className="modal-overlay">

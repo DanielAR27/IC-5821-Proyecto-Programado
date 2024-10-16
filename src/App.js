@@ -8,6 +8,7 @@ import EvaluateRubric from './components/EvaluateRubric';
 import ShowRubrics from './components/ShowRubrics';
 import ShowCreatedRubrics from './components/ShowCreatedRubrics'
 import ShowAvailableRubrics from './components/ShowAvailableRubrics';
+import ModifyRubric from './components/ModifyRubric';
 
 function App() {
   return (
@@ -22,6 +23,7 @@ function App() {
           <Route path="/rubrics/show_rubrics" element={<ShowRubrics />} />
           <Route path="/rubrics/show_created_rubrics" element={<ShowCreatedRubrics />} />
           <Route  path='/rubrics/show_available_rubrics' element={<ShowAvailableRubrics/>}/>
+          <Route path="/rubrics/modify/:id" element={<ModifyRubric />} />
         </Routes>
       </Router>
   );
