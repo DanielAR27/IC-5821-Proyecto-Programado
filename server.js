@@ -142,6 +142,9 @@ app.put('/rubricas/actualizar/:id', async (req, res) => {
   }
 });
 
+// TODO: Revisar error: la columna «rubrica_id» fue especificada más de una vez
+// ver que pasa si se guarda desde info general, evitar que se borre todo
+// si hubo un error.
 
 // Ruta para obtener las rúbricas públicas
 app.get('/rubricas/publicas', async (req, res) => {
