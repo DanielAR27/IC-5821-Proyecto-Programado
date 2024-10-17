@@ -64,6 +64,85 @@ app.post('/rubricas/crear', async (req, res) => {
   }
 });
 
+// Ruta para actualizar una rúbrica con criterios, subcriterios y columnas
+// Ruta para actualizar una rúbrica con criterios, subcriterios y columnas
+app.put('/rubricas/actualizar/:id', async (req, res) => {
+  const { id } = req.params;
+  const { criterios, ...restoDatosRubrica } = req.body;
+
+  try {
+    // Actualiza la rúbrica principal
+    const rubricaKeys = Object.keys(restoDatosRubrica);
+    const rubricaValues = Object.values(restoDatosRubrica);
+
+    const updateRubricaQuery = `
+      UPDATE rubricas
+      SET ${rubricaKeys.map((key, index) => `${key} = $${index + 1}`).join(', ')}
+      WHERE rubrica_id = $${rubricaKeys.length + 1}
+    `;
+
+    await pool.query(updateRubricaQuery, [...rubricaValues, id]);
+
+    // Elimina los criterios antiguos
+    await pool.query('DELETE FROM criterios WHERE rubrica_id = $1', [id]);
+
+    for (let criterio of criterios) {
+      const { subcriterios, ...restoDatosCriterio } = criterio;
+    
+      // Inserta los criterios actualizados
+      const criterioKeys = Object.keys(restoDatosCriterio);
+      const criterioValues = Object.values(restoDatosCriterio);
+    
+      const insertCriterioQuery = `
+        INSERT INTO criterios (${criterioKeys.join(', ')}, rubrica_id)
+        VALUES (${criterioKeys.map((_, index) => `$${index + 1}`).join(', ')}, $${criterioKeys.length + 1})
+        RETURNING criterio_id
+      `;
+    
+      const { rows: criterioResult } = await pool.query(insertCriterioQuery, [...criterioValues, id]);
+    
+      const criterioId = criterioResult[0].criterio_id;
+    
+      for (let subcriterio of subcriterios) {
+        const { columnas, ...restoDatosSubcriterio } = subcriterio;
+    
+        // Inserta los subcriterios actualizados
+        const subcriterioKeys = Object.keys(restoDatosSubcriterio);
+        const subcriterioValues = Object.values(restoDatosSubcriterio);
+    
+        const insertSubcriterioQuery = `
+          INSERT INTO subcriterios (${subcriterioKeys.join(', ')}, criterio_id)
+          VALUES (${subcriterioKeys.map((_, index) => `$${index + 1}`).join(', ')}, $${subcriterioKeys.length + 1})
+          RETURNING subcriterio_id
+        `;
+    
+        const { rows: subcriterioResult } = await pool.query(insertSubcriterioQuery, [...subcriterioValues, criterioId]);
+    
+        const subcriterioId = subcriterioResult[0].subcriterio_id;
+    
+        for (let columna of columnas) {
+          // Inserta las columnas actualizadas
+          const columnaKeys = Object.keys(columna);
+          const columnaValues = Object.values(columna);
+    
+          const insertColumnaQuery = `
+            INSERT INTO columnas (${columnaKeys.join(', ')}, subcriterio_id)
+            VALUES (${columnaKeys.map((_, index) => `$${index + 1}`).join(', ')}, $${columnaKeys.length + 1})
+          `;
+    
+          await pool.query(insertColumnaQuery, [...columnaValues, subcriterioId]);
+        }
+      }
+    }
+    
+    res.status(200).send('Rúbrica actualizada correctamente');
+  } catch (error) {
+    console.error('Error al actualizar la rúbrica:', error);
+    res.status(500).send('Error al actualizar la rúbrica');
+  }
+});
+
+
 // Ruta para obtener las rúbricas públicas
 app.get('/rubricas/publicas', async (req, res) => {
   try {
@@ -153,25 +232,6 @@ app.get('/rubricas/:id', async (req, res) => {
     res.status(500).json({ message: 'Error al obtener la rúbrica' });
   }
 });
-
-// Ruta para obtener solo la información básica de la rúbrica por ID
-app.get('/rubricas/basic/:id', async (req, res) => {
-  const { id } = req.params;
-
-  try {
-    // Obtener solo la rúbrica sin criterios
-    const rubricaResult = await pool.query('SELECT * FROM Rubricas WHERE Rubrica_ID = $1', [id]);
-    if (rubricaResult.rows.length === 0) {
-      return res.status(404).json({ message: 'Rúbrica no encontrada' });
-    }
-
-    res.json(rubricaResult.rows[0]); // Solo devuelve la rúbrica sin criterios
-  } catch (error) {
-    console.error('Error al obtener la rúbrica básica:', error);
-    res.status(500).json({ message: 'Error al obtener la rúbrica básica' });
-  }
-});
-
 
 // Ruta para actualizar el estado de "publica" de una rúbrica
 app.put('/rubricas/:id', async (req, res) => {

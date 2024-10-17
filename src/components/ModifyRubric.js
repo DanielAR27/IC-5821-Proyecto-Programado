@@ -1,163 +1,518 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation, useParams } from 'react-router-dom'; // Para obtener el ID de la rúbrica desde la URL
-import './ModifyRubric.css'; // Puedes usar el mismo CSS de CreateRubric
+import { useLocation, useParams } from 'react-router-dom';
+import './ModifyRubric.css';
+import './CreateRubric.css';
 import Navbar from './Navbar';
+import { FaPen, FaTrash } from 'react-icons/fa';
 
 function ModifyRubric() {
   const location = useLocation();
   const roles = location.state?.roles || [];
   const creadorId = location.state?.userId;
-  const { id } = useParams(); // Obtén el id de la rúbrica desde la URL
-  const [formData, setFormData] = useState(null); // Inicializa formData como null
+  const { id } = useParams();
+  const [formData, setFormData] = useState(null);
   const [isButtonDisabled, setIsButtonDisabled] = useState(true);
+  const [activeTab, setActiveTab] = useState('info-general');
+  const [isEditingCriterion, setIsEditingCriterion] = useState(false);
+  const [currentEditingCriterion, setCurrentEditingCriterion] = useState(null);
+  const [selectedRow, setSelectedRow] = useState(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [criterioToDelete, setCriterioToDelete] = useState(null);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
 
-  console.log("Su rubrica corresponde a : ", id);
-  // Carga los datos de la rúbrica al montar el componente
   useEffect(() => {
     const fetchRubric = async () => {
       try {
-        const response = await fetch(`http://localhost:5000/rubricas/basic/${id}`);
+        const response = await fetch(`http://localhost:5000/rubricas/${id}`);
         const data = await response.json();
-  
         if (data.fechacreacion) {
           data.fechacreacion = new Date(data.fechacreacion).toISOString().split('T')[0];
         }
-    
-        setFormData(data); // Actualiza formData con los datos de la rúbrica
+        setFormData(data);
       } catch (error) {
         console.error('Error al cargar la rúbrica:', error);
       }
     };
-  
     fetchRubric();
   }, [id]);
-  
 
   useEffect(() => {
     if (formData) {
-      // Valida solo los campos que deben ser validados como strings
       const allFieldsFilled = ['autor', 'titulo', 'descripcion', 'areageneral', 'areaespecifica', 'aspectoevaluar']
         .every(field => formData[field] && formData[field].trim() !== '');
-      
-      // Asegúrate de que la fecha esté seleccionada y no vacía
       const isDateValid = formData.fechacreacion && formData.fechacreacion !== '';
-  
-      // Si todos los campos están llenos y la fecha es válida, habilita el botón
       setIsButtonDisabled(!(allFieldsFilled && isDateValid));
     }
   }, [formData]);
-  
-  
-    // Función para manejar los cambios en los campos del formulario
-    const handleChange = (e) => {
-        const { name, value } = e.target;
-      
-        setFormData((prevData) => ({
-          ...prevData,
-          [name]: value, // Asegúrate de que el 'name' sea correcto y actualiza el campo
-        }));
-      };
-      
 
-  const handleSubmit = () => {
-    // Aquí puedes agregar la lógica para enviar los datos actualizados al servidor
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prevData => ({
+      ...prevData,
+      [name]: value,
+    }));
+  };
+
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+  };
+
+  const handleEditCriterion = (criterioIndex) => {
+    setCurrentEditingCriterion(criterioIndex);
+    setIsEditingCriterion(true);
+  };
+
+  const handleReturnFromEdit = () => {
+    setIsEditingCriterion(false);
+  };
+
+  const handleCriterionChange = (fieldPath, value) => {
+    const updatedFormData = { ...formData }; // Copiamos el estado actual
+    const fieldPathParts = fieldPath.split('.'); // Descomponemos el path de la clave en partes
+  
+    // Iteramos sobre las partes del path para llegar al valor correcto a modificar
+    let target = updatedFormData.criterios[currentEditingCriterion];
+    for (let i = 0; i < fieldPathParts.length - 1; i++) {
+      target = target[fieldPathParts[i]]; // Navegamos en la estructura de los subcriterios/columnas
+    }
+    
+    // Actualizamos el valor en el último nivel del path
+    target[fieldPathParts[fieldPathParts.length - 1]] = value;
+  
+    // Finalmente, actualizamos el estado
+    setFormData(updatedFormData);
+  };
+
+  const handleDeleteClick = (criterioIndex) => {
+    setCriterioToDelete(criterioIndex);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    // Clonamos el estado actual de formData
+    const updatedFormData = { ...formData };
+  
+    // Eliminamos el criterio según el índice guardado en criterioToDelete
+    updatedFormData.criterios.splice(criterioToDelete, 1);
+  
+    // Actualizamos el estado de los criterios
+    setFormData(updatedFormData);
+  
+    // Cerramos el modal
+    setIsDeleteModalOpen(false);
+  };
+
+  const handleCancelDelete = () => {
+    setIsDeleteModalOpen(false);
+  };
+
+  const handleAddCriterion = () => {
+    const newCriterio = {
+      nombrecriterio: `Nuevo criterio ${formData.criterios.length + 1}`,
+      subcriterios: [],
+    };
+  
+    // Actualiza el estado con el nuevo criterio
+    setFormData(prevData => ({
+      ...prevData,
+      criterios: [...prevData.criterios, newCriterio],
+    }));
+  };
+
+// Función de validación
+const validateRubric = () => {
+  let valid = true;
+  let errorMessage = '';
+  let totalPorcentajeGeneral = 0; // Variable para almacenar la suma de todos los porcentajes
+
+  // Verificar que todos los criterios, subcriterios y columnas tengan texto
+  for (let criterio of formData.criterios) {
+    if (!criterio.nombrecriterio.trim()) {
+      valid = false;
+      errorMessage = 'Todos los criterios deben tener texto.';
+      break;
+    }
+
+    for (let subcriterio of criterio.subcriterios) {
+      if (!subcriterio.descripcion.trim()) {
+        valid = false;
+        errorMessage = 'Todos los subcriterios deben tener texto.';
+        break;
+      }
+
+      for (let columna of subcriterio.columnas) {
+        if (!columna.textocolumna.trim()) {
+          valid = false;
+          errorMessage = 'Todas las columnas deben tener texto.';
+          break;
+        }
+      }
+
+      // Sumar el porcentaje de cada subcriterio
+      const porcentaje = parseFloat(subcriterio.porcentaje);
+      console.log(`Porcentaje de subcriterio en criterio ${criterio.nombrecriterio}: ${porcentaje}`); // Depurar cada porcentaje
+      totalPorcentajeGeneral += isNaN(porcentaje) ? 0 : porcentaje; // Asegurarse de que no se sumen valores NaN
+    }
+  }
+
+  console.log(`Suma total de los porcentajes de todos los subcriterios es: ${totalPorcentajeGeneral}`);
+
+  // Verificar que la suma total de los porcentajes de todos los subcriterios sea 100%
+  if (totalPorcentajeGeneral !== 100) {
+    valid = false;
+    errorMessage = 'La suma de los porcentajes de todos los subcriterios debe ser 100%.';
+  }
+
+  if (!valid) {
+    setErrorMessage(errorMessage);  // Muestra el error en pantalla
+
+    // Después de 5 segundos, se oculta el mensaje
+    setTimeout(() => {
+      setErrorMessage('');
+    }, 5000); // 5000ms = 5 segundos
+  }
+
+  return valid;
+};
+
+const handleSaveChanges = async () => {
+  // Validar la rúbrica antes de enviar
+  if (!validateRubric()) {
+    return;
+  }
+
+  try {
+    // Actualizar el orden de los criterios (empezando desde cero)
+    formData.criterios = formData.criterios.map((criterio, index) => ({
+      ...criterio,
+      orden: index // Ajusta el número del criterio basado en el índice, comenzando desde 0
+    }));
+
+    // Preparamos los datos para enviarlos al servidor
+    const rubricaData = {
+      ...formData,   // Los datos generales de la rúbrica
+      criterios: formData.criterios.map(criterio => ({
+        ...criterio,
+        subcriterios: criterio.subcriterios.map(subcriterio => ({
+          ...subcriterio,
+          columnas: subcriterio.columnas.map(columna => ({
+            textocolumna: columna.textocolumna,
+          }))
+        }))
+      }))
+    };
+
+    // Hacemos la solicitud PUT al servidor para actualizar la rúbrica
+    const response = await fetch(`http://localhost:5000/rubricas/actualizar/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(rubricaData), // Enviamos la rúbrica y sus criterios, subcriterios y columnas
+    });
+
+    if (response.ok) {
+      setSuccessMessage('Cambios guardados correctamente.');
+      setTimeout(() => {
+        setSuccessMessage(''); // Elimina el mensaje después de 5 segundos
+      }, 5000);  // 5000ms = 5 segundos
+    } else {
+      setErrorMessage('Hubo un error al guardar los cambios.');
+      setTimeout(() => {
+        setErrorMessage(''); // Elimina el mensaje después de 5 segundos
+      }, 5000);
+    }
+  } catch (error) {
+    setErrorMessage('Error en la conexión con el servidor.');
+    setTimeout(() => {
+      setErrorMessage(''); // Elimina el mensaje después de 5 segundos
+    }, 5000);
+  }
+};
+
+
+
+
+  const addSubcriterion = () => {
+    const updatedFormData = { ...formData };
+    const newSubcriterion = {
+      descripcion: '',
+      columnas: Array.from({ length: formData.cantidad_columnas }).map(() => ({ textocolumna: '' })),
+      porcentaje: 0,
+    };
+    updatedFormData.criterios[currentEditingCriterion].subcriterios.push(newSubcriterion);
+    setFormData(updatedFormData);
+  };
+
+  const removeSubcriterion = (subIndex) => {
+    const updatedFormData = { ...formData };
+    updatedFormData.criterios[currentEditingCriterion].subcriterios.splice(subIndex, 1);
+    setFormData(updatedFormData);
   };
 
   if (!formData) {
-    return <div>Cargando...</div>; // Muestra un mensaje de carga mientras los datos se están obteniendo
+    return <div>Cargando...</div>;
   }
 
-  console.log("roles: ", roles);
-  console.log("usuario: ", creadorId);
   return (
-    <div className="create-rubric-wrapper">
-      <Navbar roles={roles} userId={creadorId}/>
-      <div className="create-rubric-container">
-        <form className="rubric-form">
-          {/* Campos del formulario */}
-          <div className="form-group">
-            <label>Autor:</label>
-            <input
-              type="text"
-              name="autor"
-              value={formData.autor}
-              onChange={handleChange}
-              placeholder="Ingresa el nombre del autor"
-            />
-          </div>
-          <div className="form-group">
-            <label>Fecha:</label>
-            <input
-                type="date"
-                name="fechacreacion" // Asegúrate de que el nombre coincida con el campo en formData
-                value={formData.fechacreacion} // Si es undefined o null, poner un string vacío
-                onChange={handleChange} // Asegúrate de usar la función correcta para manejar cambios
-            />
-            </div>
+    <div className="modify-rubric-wrapper">
+      <Navbar roles={roles} userId={creadorId} />
 
-          <div className="form-group">
-            <label>Título:</label>
-            <input
-              type="text"
-              name="titulo"
-              value={formData.titulo}
-              onChange={handleChange}
-              placeholder="Ingresa el título"
-            />
-          </div>
-          <div className="form-group">
-            <label>Descripción:</label>
-            <textarea
-              name="descripcion"
-              value={formData.descripcion}
-              onChange={handleChange}
-              placeholder="Ingresa una descripción"
-            ></textarea>
-          </div>
-          <div className="form-group">
-            <label>Área General:</label>
-            <input
-                type="text"
-                name="areageneral" // El 'name' debe coincidir con la clave en formData
-                value={formData.areageneral} // Asegúrate de que el valor venga de formData
-                onChange={handleChange} // Asocia correctamente la función de cambio
-                placeholder="Ingresa el área general"
-            />
-        </div>
-
-          <div className="form-group">
-            <label>Área Específica:</label>
-            <select
-              name="areaespecifica"
-              value={formData.areaespecifica}
-              onChange={handleChange}
-            >
-              <option value="opción #1">opción #1</option>
-              <option value="opción #2">opción #2</option>
-            </select>
-          </div>
-          <div className="form-group">
-            <label>Aspecto a Evaluar:</label>
-            <select
-              name="aspectoevaluar"
-              value={formData.aspectoevaluar}
-              onChange={handleChange}
-            >
-              <option value="opción #1">opción #1</option>
-              <option value="opción #2">opción #2</option>
-            </select>
-          </div>
-        </form>
-
-        <button
-          type="button"
-          onClick={handleSubmit}
-          className={`next-button ${isButtonDisabled ? 'disabled' : ''}`}
-          disabled={isButtonDisabled}
+      <div className="mini-navbar-horizontal">
+        <div
+          className={`mini-navbar-item-horizontal ${activeTab === 'info-general' ? 'active' : ''}`}
+          onClick={() => handleTabChange('info-general')}
         >
-          Guardar Cambios
-        </button>
+          Información General
+        </div>
+        <div
+          className={`mini-navbar-item-horizontal ${activeTab === 'matriz' ? 'active' : ''}`}
+          onClick={() => handleTabChange('matriz')}
+        >
+          Matriz
+        </div>
       </div>
+
+    {/* Mostrar mensaje de advertencia si hay un error */}
+    {errorMessage && (
+      <div className="warning-message">
+        {errorMessage}
+      </div>
+    )}
+
+    {/* Mostrar mensaje de éxito si la operación fue exitosa */}
+    {successMessage && (
+      <div className="success-message">
+        {successMessage}
+      </div>
+    )}
+
+      {activeTab === 'info-general' && (
+        <div className="create-rubric-container">
+          <form className="rubric-form">
+            <div className="form-group">
+              <label>Autor:</label>
+              <input
+                type="text"
+                name="autor"
+                value={formData.autor}
+                onChange={handleChange}
+                placeholder="Ingresa el nombre del autor"
+              />
+            </div>
+            <div className="form-group">
+              <label>Fecha:</label>
+              <input
+                type="date"
+                name="fechacreacion"
+                value={formData.fechacreacion}
+                onChange={handleChange}
+              />
+            </div>
+            <div className="form-group">
+              <label>Título:</label>
+              <input
+                type="text"
+                name="titulo"
+                value={formData.titulo}
+                onChange={handleChange}
+                placeholder="Ingresa el título"
+              />
+            </div>
+            <div className="form-group">
+              <label>Descripción:</label>
+              <textarea
+                name="descripcion"
+                value={formData.descripcion}
+                onChange={handleChange}
+                placeholder="Ingresa una descripción"
+              ></textarea>
+            </div>
+            <div className="form-group">
+              <label>Área General:</label>
+              <input
+                type="text"
+                name="areageneral"
+                value={formData.areageneral}
+                onChange={handleChange}
+                placeholder="Ingresa el área general"
+              />
+            </div>
+            <div className="form-group">
+              <label>Área Específica:</label>
+              <select
+                name="areaespecifica"
+                value={formData.areaespecifica}
+                onChange={handleChange}
+              >
+                <option value="opción #1">opción #1</option>
+                <option value="opción #2">opción #2</option>
+              </select>
+            </div>
+            <div className="form-group">
+              <label>Aspecto a Evaluar:</label>
+              <select
+                name="aspectoevaluar"
+                value={formData.aspectoevaluar}
+                onChange={handleChange}
+              >
+                <option value="opción #1">opción #1</option>
+                <option value="opción #2">opción #2</option>
+              </select>
+            </div>
+          </form>
+
+          <button
+            type="button"
+            onClick={handleSaveChanges}
+            className={`next-button ${isButtonDisabled ? 'disabled' : ''}`}
+            disabled={isButtonDisabled}
+          >
+            Guardar Cambios
+          </button>
+        </div>
+      )}
+
+      {activeTab === 'matriz' && !isEditingCriterion && (
+        <div className="matrix-container">
+          <h2>Matriz de Evaluación</h2>
+
+          {formData.criterios?.map((criterio, criterioIndex) => (
+            <div key={criterioIndex} className="criterio-item">
+              <div className="criterio-header">
+                <h3>Criterio {criterioIndex + 1}: {criterio.nombrecriterio}</h3>
+                <div className="criterio-icons">
+                  <FaPen className="edit-icon" onClick={() => handleEditCriterion(criterioIndex)} />
+                  <FaTrash className="delete-icon" onClick={() => handleDeleteClick(criterioIndex)} />
+                </div>
+              </div>
+              <table className="rubric-table">
+                <thead>
+                  <tr>
+                    <th>Descripción</th>
+                    {criterio.subcriterios[0]?.columnas.map((columna, colIndex) => (
+                      <th key={colIndex}>{colIndex + 1} PTOS</th>
+                    ))}
+                    <th>Porcentaje</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {criterio.subcriterios.map((subcriterio, subIndex) => (
+                    <tr key={subIndex}>
+                      <td>{subcriterio.descripcion}</td>
+                      {subcriterio.columnas.map((columna, colIndex) => (
+                        <td key={colIndex}>{columna.textocolumna}</td>
+                      ))}
+                      <td>{subcriterio.porcentaje}%</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ))}
+
+          <div className="modify-buttons">
+            <button className="modify-button" onClick={handleAddCriterion}>Agregar Criterio</button>
+            <button className="modify-button" onClick={handleSaveChanges}>Guardar Cambios</button>
+          </div>
+        </div>
+      )}
+
+      {isDeleteModalOpen && (
+        <div className="modal-backdrop">
+          <div className="delete-modal">
+            <p style={{ fontWeight: 'bold', textAlign: 'center' }}>
+              ¿Estás seguro de que deseas borrar este criterio?
+            </p>
+            <div className="confirmation-buttons">
+              <button className="confirm-yes" onClick={handleConfirmDelete}>Sí</button>
+              <button className="confirm-no" onClick={handleCancelDelete}>No</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isEditingCriterion && (
+        <>
+          <div className="criterion-container">
+            <h3 className="criterion-number">Criterio {currentEditingCriterion + 1}</h3>
+
+            <input
+              type="text"
+              value={formData.criterios[currentEditingCriterion].nombrecriterio}
+              onChange={(e) => handleCriterionChange('nombrecriterio', e.target.value)}
+              className="criterion-name-input"
+              placeholder="Nombre del criterio"
+            />
+
+            <table className="rubric-table">
+              <thead>
+                <tr>
+                  <th>Descripción</th>
+                  {Array.from({ length: formData.cantidad_columnas }).map((_, index) => (
+                    <th key={index}>{index + 1} PTOS</th>
+                  ))}
+                  <th>Peso (%)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {formData.criterios[currentEditingCriterion].subcriterios.map((subcriterio, subIndex) => (
+                  <tr
+                    key={subIndex}
+                    className={selectedRow === subIndex ? "selected-row" : ""}
+                    onClick={() => setSelectedRow(subIndex)}
+                  >
+                    <td>
+                      <textarea
+                        value={subcriterio.descripcion}
+                        onChange={(e) => handleCriterionChange(`subcriterios.${subIndex}.descripcion`, e.target.value)}
+                        className="text-box"
+                      />
+                    </td>
+                    {subcriterio.columnas.map((columna, colIndex) => (
+                      <td key={colIndex}>
+                        <textarea
+                          value={columna.textocolumna}
+                          onChange={(e) => handleCriterionChange(`subcriterios.${subIndex}.columnas.${colIndex}.textocolumna`, e.target.value)}
+                          className="text-box"
+                        />
+                      </td>
+                    ))}
+                    <td>
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        value={subcriterio.porcentaje}
+                        onChange={(e) => handleCriterionChange(`subcriterios.${subIndex}.porcentaje`, e.target.value)}
+                        className="percentage-slider"
+                      />
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={subcriterio.porcentaje}
+                        onChange={(e) => handleCriterionChange(`subcriterios.${subIndex}.porcentaje`, e.target.value)}
+                        className="percentage-input"
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            <div className="add-row-buttons">
+              <button className="add-button" onClick={addSubcriterion}>+</button>
+              <button className="delete-button" onClick={() => removeSubcriterion(formData.criterios[currentEditingCriterion].subcriterios.length - 1)}>-</button>
+            </div>
+          </div>
+
+          <div className="modify-buttons">
+            <button className="modify-button" onClick={handleReturnFromEdit}>Regresar</button>
+          </div>
+        </>
+      )}
     </div>
   );
 }
