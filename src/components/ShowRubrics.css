@@ -56,14 +56,14 @@
   }
   
   /* Estilo del ícono de la lupa */
-  .rubric-search-icon {
+  .rubric-icon {
     font-size: 20px;
     color: #555;
     cursor: pointer;
     transition: color 0.3s ease;
   }
   
-  .rubric-search-icon:hover {
+  .rubric-icon:hover {
     color: #007bff;
   }
   
@@ -166,6 +166,22 @@
   
   .accept-button:hover {
     background-color: #218838;
+  }
+
+  .success-message-home {
+    color: green;
+    font-weight: bold;
+    margin: 10px 0;
+    background-color: #e0ffe0;
+    padding: 15px;
+    border-radius: 4px;
+    text-align: center;
+    width: 100%; /* Ocupa todo el ancho */
+    max-width: 1200px; /* Ancho máximo para igualar al cuadro gris */
+    margin: 0 auto; /* Centra el mensaje */
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    transition: opacity 0.5s ease-in-out;
+    opacity: 1; /* Inicia visible */
   }
   
   /* Aseguramos que el contenedor de rúbricas ocupe todo el ancho */

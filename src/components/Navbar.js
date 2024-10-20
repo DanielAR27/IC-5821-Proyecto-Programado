@@ -13,7 +13,7 @@ const Navbar = ({ roles, userId }) => {
     }
 
     if (roles.includes('Evaluador')) {
-      options.push('Listar rúbricas públicas', 'Evaluar rúbricas');
+      options.push('Listar rúbricas públicas', 'Evaluar propuestas');
     }
 
     if (roles.includes('Consultor')) {
@@ -45,6 +45,9 @@ const Navbar = ({ roles, userId }) => {
               break;
             case 'Listar rúbricas disponibles':
               route = '/rubrics/show_available_rubrics';
+              break;
+            case 'Evaluar propuestas':
+              route = '/rubrics/show_evaluation';
               break;
             default:
               break;

@@ -396,6 +396,91 @@ app.post('/evaluadorpropuesta', async (req, res) => {
   }
 });
 
+app.get('/evaluador/:id/propuestas-evaluacion', async (req, res) => {
+  const evaluadorId = req.params.id;
+
+  try {
+    // 1. Obtener todas las propuestas asociadas al evaluador en EvaluadorPropuesta
+    const evaluadorPropuestas = await pool.query(
+      `SELECT EvaluadorPropuesta_ID, Propuesta_ID, TipoPropuesta 
+       FROM EvaluadorPropuesta 
+       WHERE Evaluador_ID = $1`,
+      [evaluadorId]
+    );
+
+    if (evaluadorPropuestas.rows.length === 0) {
+      return res.status(404).json({ message: 'No se encontraron propuestas asociadas para este evaluador.' });
+    }
+
+    // Extraer los EvaluadorPropuesta_ID
+    const evaluadorPropuestaIds = evaluadorPropuestas.rows.map(row => row.evaluadorpropuesta_id);
+
+    // 2. Buscar en AsignacionPropuestas las que tengan EvaluadorPropuesta_ID y EstadoPropuesta = 1
+    const asignacionPropuestas = await pool.query(
+      `SELECT Asignacion_ID, RubricaPropuesta_ID, EvaluadorPropuesta_ID 
+       FROM AsignacionPropuestas 
+       WHERE EvaluadorPropuesta_ID = ANY($1::int[]) AND EstadoPropuesta = 1`,
+      [evaluadorPropuestaIds]
+    );
+
+    if (asignacionPropuestas.rows.length === 0) {
+      return res.status(404).json({ message: 'No se encontraron propuestas con estado 1.' });
+    }
+
+    // 3. Obtener la propuesta_id y tipo_propuesta de RubricaPropuesta
+    const rubricaPropuestaIds = asignacionPropuestas.rows.map(row => row.rubricapropuesta_id);
+    const rubricas = await pool.query(
+      `SELECT RubricaPropuesta.RubricaPropuesta_ID, RubricaPropuesta.Propuesta_ID, 
+              RubricaPropuesta.TipoPropuesta, Rubricas.Titulo, Rubricas.Rubrica_ID 
+       FROM RubricaPropuesta 
+       JOIN Rubricas ON RubricaPropuesta.Rubrica_ID = Rubricas.Rubrica_ID 
+       WHERE RubricaPropuesta.RubricaPropuesta_ID = ANY($1::int[])`,
+      [rubricaPropuestaIds]
+    );
+
+    if (rubricas.rows.length === 0) {
+      return res.status(404).json({ message: 'No se encontraron propuestas en RubricaPropuesta.' });
+    }
+
+    // Extraer las tuplas (propuesta_id, tipo_propuesta)
+    const propuestaTuplas = rubricas.rows.map(row => ({
+      propuesta_id: row.propuesta_id,
+      tipo_propuesta: row.tipopropuesta
+    }));
+
+    // 4. Buscar las descripciones de las propuestas en Vista_Solicitudes
+    const consultaVista = await pool.query(
+      `SELECT id_solicitud, Descripcion, tipo_solicitud_origen 
+       FROM Vista_Solicitudes 
+       WHERE (id_solicitud, tipo_solicitud_origen) IN (SELECT unnest($1::int[]), unnest($2::text[]))`,
+      [propuestaTuplas.map(p => p.propuesta_id), propuestaTuplas.map(p => p.tipo_propuesta)]
+    );
+
+    if (consultaVista.rows.length === 0) {
+      return res.status(404).json({ message: 'No se encontraron descripciones en Vista_Solicitudes para las propuestas.' });
+    }
+
+    // 5. Formar la respuesta final separando rubrica.titulo y descripcionVista
+    const propuestasFinales = asignacionPropuestas.rows.map(asignacion => {
+      const rubrica = rubricas.rows.find(r => r.rubricapropuesta_id === asignacion.rubricapropuesta_id);
+      const descripcionVista = consultaVista.rows.find(v => v.id_solicitud === rubrica.propuesta_id)?.descripcion || 'Descripción no encontrada';
+
+      return {
+        asignacion_id: asignacion.asignacion_id,
+        rubrica_titulo: rubrica?.titulo || 'Sin título',
+        descripcion: descripcionVista,
+        rubrica_id: rubrica?.rubrica_id || null
+      };
+    });
+    
+    res.json(propuestasFinales); // Devolver el resultado final con título y descripción separados
+  } catch (error) {
+    console.error('Error al obtener propuestas para evaluación:', error);
+    res.status(500).json({ error: 'Error al obtener propuestas para evaluación.' });
+  }
+});
+
+
 // Ruta para obtener las rúbricas públicas
 app.get('/rubricas/publicas', async (req, res) => {
   try {
@@ -439,6 +524,94 @@ app.get('/rubricas/creadas/:userId', async (req, res) => {
     res.status(500).json({ error: 'Error al obtener las rúbricas creadas.' });
   }
 });
+
+app.post('/evaluar_rubrica', async (req, res) => {
+  const { rubric_id, asignacionId, resultados } = req.body; // Desestructuramos los datos del body
+
+  if (!Array.isArray(resultados)) {
+    return res.status(400).json({ error: 'Formato incorrecto, se esperaba un array de resultados' });
+  }
+
+  // Creamos un objeto para almacenar la suma de porcentajes por criterio
+  const criterios = {};
+
+  // Procesamos cada subcriterio recibido
+  resultados.forEach((subcriterio) => {
+    const { subcriterio_id, puntos_obtenidos, porcentaje_asignado, criterio_id } = subcriterio;
+
+    // Si el criterio aún no está en la lista, lo agregamos
+    if (!criterios[criterio_id]) {
+      criterios[criterio_id] = {
+        criterio_id,
+        total_porcentaje: 0,
+      };
+    }
+
+    // Sumamos el porcentaje del subcriterio al criterio correspondiente
+    criterios[criterio_id].total_porcentaje += porcentaje_asignado;
+
+    console.log(`Subcriterio ID: ${subcriterio_id}, Criterio ID: ${criterio_id}, Puntos obtenidos: ${puntos_obtenidos}, Porcentaje asignado: ${porcentaje_asignado}`);
+  });
+
+  // Sumamos todos los porcentajes por criterio para calcular el total de la rúbrica
+  let totalRubrica = 0;
+  Object.values(criterios).forEach(criterio => {
+    totalRubrica += criterio.total_porcentaje;
+    console.log(`Criterio ID: ${criterio.criterio_id}, Total porcentaje: ${criterio.total_porcentaje}`);
+  });
+
+  try {
+    // Empezamos una transacción
+    await pool.query('BEGIN');
+
+    // 1. Actualizamos el estado de la propuesta en AsignacionPropuestas
+    await pool.query(
+      'UPDATE AsignacionPropuestas SET EstadoPropuesta = 2 WHERE Asignacion_ID = $1',
+      [asignacionId]
+    );
+
+    // 2. Insertamos un nuevo registro en ResultadosRubrica
+    const resultadoInsert = await pool.query(
+      'INSERT INTO ResultadosRubrica (Asignacion_ID, Rubrica_ID, Resultado) VALUES ($1, $2, $3) RETURNING Resultado_ID',
+      [asignacionId, rubric_id, totalRubrica]
+    );
+    const resultadoId = resultadoInsert.rows[0].resultado_id;
+
+    // 3. Insertamos en CriteriosEvaluados por cada criterio
+    for (const criterio of Object.values(criterios)) {
+      const criterioInsert = await pool.query(
+        'INSERT INTO CriteriosEvaluados (Resultado_ID, Criterio_ID, PorcentajeAsignado) VALUES ($1, $2, $3) RETURNING CriterioEvaluado_ID',
+        [resultadoId, criterio.criterio_id, criterio.total_porcentaje]
+      );
+      const criterioEvaluadoId = criterioInsert.rows[0].criterioevaluado_id;
+
+      // 4. Insertamos en SubCriteriosEvaluados por cada subcriterio asociado al criterio
+      for (const subcriterio of resultados.filter(r => r.criterio_id === criterio.criterio_id)) {
+        await pool.query(
+          'INSERT INTO SubcriteriosEvaluados (CriterioEvaluado_ID, Subcriterio_ID, PuntosObtenidos, PorcentajeAsignado) VALUES ($1, $2, $3, $4)',
+          [criterioEvaluadoId, subcriterio.subcriterio_id, subcriterio.puntos_obtenidos, subcriterio.porcentaje_asignado]
+        );
+      }
+    }
+
+    // Hacemos commit de la transacción
+    await pool.query('COMMIT');
+    
+    res.json({
+      mensaje: 'Evaluación procesada y guardada con éxito',
+      totalRubrica,
+      criterios,
+    });
+
+  } catch (error) {
+    // En caso de error, revertimos la transacción
+    await pool.query('ROLLBACK');
+    console.error('Error al procesar la evaluación:', error);
+    res.status(500).json({ error: 'Ocurrió un error al procesar la evaluación.' });
+  }
+});
+
+
 
 // Ruta para obtener una rúbrica por su ID
 app.get('/rubricas/:id', async (req, res) => {
@@ -554,7 +727,6 @@ app.post('/register', async (req, res) => {
     );
 
     const userId = result.rows[0].usuario_id;
-    console.log("userId: ", userId);
 
     // Asignar el rol de 'Consultor' por defecto (TipoUsuarioID = 1)
     await pool.query('INSERT INTO RolesAsignados (Usuario_ID, TipoUsuario_ID) VALUES ($1, 1)', [userId]);

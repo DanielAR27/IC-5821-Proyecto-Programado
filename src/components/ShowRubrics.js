@@ -9,10 +9,12 @@ function ShowRubrics() {
   const location = useLocation();
   const roles = location.state?.roles || []; // Obtén los roles del estado
   const userId = location.state?.userId;
+  const successMessage = location.state?.successMessage; // Obtenemos el mensaje de éxito
   const [rubrics, setRubrics] = useState([]);
   const [showRubricDetails, setShowRubricDetails] = useState(false);
   const [rubricDetails, setRubricDetails] = useState(null);
   const [loading, setLoading] = useState(true); // Estado para controlar si está cargando
+  const [visibleMessage, setVisibleMessage] = useState(successMessage || ''); // Estado para manejar la visibilidad del mensaje
 
   useEffect(() => {
     const fetchRubrics = async () => {
@@ -29,6 +31,17 @@ function ShowRubrics() {
 
     fetchRubrics();
   }, []);
+
+  // Este efecto hará que el mensaje desaparezca después de 5 segundos
+  useEffect(() => {
+    if (successMessage) {
+      const timer = setTimeout(() => {
+        setVisibleMessage('');
+      }, 5000); // El mensaje desaparece después de 5 segundos
+
+      return () => clearTimeout(timer); // Limpiamos el temporizador al desmontar
+    }
+  }, [successMessage]);
 
   const handleMagicSearch = async (rubric) => {
     try {
@@ -49,6 +62,14 @@ function ShowRubrics() {
   return (
     <div className="show-rubrics-wrapper">
       <Navbar roles={roles} userId={userId} /> {/* Asegúrate de que roles sean pasados correctamente */}
+
+      {/* Mostrar el mensaje de éxito si existe */}
+      {visibleMessage && (
+        <div className="success-message-home">
+          {visibleMessage}
+        </div>
+      )}
+
       <div className="rubrics-container">
         {loading ? (
           <div className="loading-message">
@@ -62,7 +83,7 @@ function ShowRubrics() {
                 <div className="rubric-title">{rubric.titulo}</div>
                 <div className="rubric-author">Autor: {rubric.autor}</div>
               </div>
-              <div className="rubric-search-icon" onClick={() => handleMagicSearch(rubric)}>
+              <div className="rubric-icon" onClick={() => handleMagicSearch(rubric)}>
                 <FaSearch />
               </div>
             </div>

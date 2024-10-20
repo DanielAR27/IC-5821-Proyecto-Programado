@@ -1,41 +1,141 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
-import './EvaluateRubric.css'; // Usando el mismo estilo que EvaluateRubric
+import { useNavigate, useLocation, useParams } from 'react-router-dom';
+import './EvaluateRubric.css'; // Puedes personalizar el CSS si lo necesitas
 
 function EvaluateRubric() {
-  const { id } = useParams(); // Obteniendo el id de la URL
-  const [rubricData, setRubricData] = useState(null);
-  const [selectedOptions, setSelectedOptions] = useState({}); // Estado para almacenar las selecciones
+  const { id } = useParams(); // Obtenemos el ID de la rúbrica desde la URL
+  const [rubricData, setRubricData] = useState(null); // Estado para almacenar los datos de la rúbrica
+  const [loading, setLoading] = useState(true); // Para manejar el estado de carga
+  const [selectedOptions, setSelectedOptions] = useState({}); // Estado para almacenar la columna seleccionada por subcriterio
+  const [confirmSubmit, setConfirmSubmit] = useState(false); // Estado para mostrar/ocultar el modal
+  const location = useLocation();
+  const roles = location.state?.roles || [];
+  const userId = location.state?.userId;
+  const asignacionId = location.state?.asignacionId;
+  const navigate = useNavigate(); // Para redirigir a otras páginas
 
   useEffect(() => {
-    // Obtener los datos de la rúbrica desde la API
-    const fetchRubric = async () => {
+    // Función para obtener los datos de la API
+    const fetchRubricData = async () => {
       try {
         const response = await fetch(`http://localhost:5000/rubricas/${id}`);
         const data = await response.json();
-        setRubricData(data);
+        setRubricData(data); // Almacenamos los datos en el estado
+        setLoading(false); // Desactivamos el estado de carga
       } catch (error) {
-        console.error('Error al cargar la rúbrica:', error);
+        console.error('Error al obtener los datos:', error);
+        setLoading(false); // Desactivamos el estado de carga incluso en caso de error
       }
     };
 
-    fetchRubric();
+    fetchRubricData(); // Llamamos a la función cuando se monta el componente
   }, [id]);
 
-  // Manejador para cambiar la selección
+  // Manejador de selección de columnas
   const handleOptionSelect = (subcriterioId, columnaIndex) => {
-    setSelectedOptions(prev => ({
+    setSelectedOptions((prev) => ({
       ...prev,
-      [subcriterioId]: columnaIndex, // Solo permite seleccionar una opción por subcriterio
+      [subcriterioId]: columnaIndex, // Guardamos la columna seleccionada para cada subcriterio
     }));
   };
 
-  const handleSubmit = () => {
-    console.log('Evaluación enviada:', selectedOptions);
+  // Validar si todas las casillas han sido seleccionadas
+  const validateSelections = () => {
+    let allSelected = true;
+    rubricData.criterios.forEach((criterio) => {
+      criterio.subcriterios.forEach((subcriterio) => {
+        if (selectedOptions[subcriterio.subcriterio_id] === undefined) {
+          allSelected = false; // Si no se seleccionó una casilla, retorna falso
+        }
+      });
+    });
+    return allSelected;
   };
 
+  // Manejador para abrir el modal de confirmación
+  const handleOpenConfirmModal = () => {
+    if (!validateSelections()) {
+      alert('localhost dice: Asegúrese de seleccionar una casilla por cada subcriterio.');
+    } else {
+      setConfirmSubmit(true); // Mostramos el modal si las selecciones son válidas
+    }
+  };
+
+  // Manejador para cerrar el modal de confirmación
+  const handleCloseConfirmModal = () => {
+    setConfirmSubmit(false); // Ocultamos el modal
+  };
+
+  // Manejador para guardar la evaluación cuando se confirma en el modal
+  const handleConfirmSave = () => {
+    setConfirmSubmit(false); // Ocultamos el modal
+
+    const resultados = [];
+
+    rubricData.criterios.forEach((criterio, criterioIndex) => {
+      criterio.subcriterios.forEach((subcriterio, subcriterioIndex) => {
+        const selectedColumna = selectedOptions[subcriterio.subcriterio_id] !== undefined
+          ? selectedOptions[subcriterio.subcriterio_id]
+          : null;
+
+        if (selectedColumna !== null) {
+          const puntos_maximo = rubricData.cantidad_columnas - 1;
+
+          // Calcular puntos obtenidos y porcentaje asignado
+          const puntos_obtenidos = selectedColumna;
+          const porcentaje_asignado = (subcriterio.porcentaje * (puntos_obtenidos / puntos_maximo));
+
+          resultados.push({
+            subcriterio_id: subcriterio.subcriterio_id,
+            puntos_obtenidos,
+            porcentaje_asignado,
+            criterio_id: criterio.criterio_id,
+          });
+        }
+      });
+    });
+
+    // Enviar los resultados al servidor junto con rubric_id y asignacionId
+    const dataToSend = {
+      rubric_id: id,
+      asignacionId,
+      resultados,
+    };
+
+    fetch('http://localhost:5000/evaluar_rubrica', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(dataToSend),
+    })
+      .then((response) => {
+        if (response.ok) {
+          // Redirigir al mostrar rúbricas con el userId, roles y mensaje de éxito
+          navigate('/rubrics/show_rubrics', { 
+            state: { 
+              successMessage: 'Se ha guardado la rúbrica exitosamente', 
+              userId, 
+              roles 
+            } 
+          });
+        } else {
+          throw new Error('Error al guardar la rúbrica');
+        }
+      })
+      .catch((error) => {
+        // Mostrar un mensaje de error con alerta
+        alert('localhost dice: No se ha podido guardar el resultado');
+        console.error('Error al guardar la evaluación:', error);
+      });
+  };
+
+  if (loading) {
+    return <div>Cargando...</div>; // Mostramos un indicador de carga mientras se obtienen los datos
+  }
+
   if (!rubricData) {
-    return <div>Cargando rúbrica...</div>;
+    return <div>No se encontró la rúbrica.</div>; // Si no hay datos, mostramos un mensaje de error
   }
 
   return (
@@ -51,10 +151,10 @@ function EvaluateRubric() {
               <thead>
                 <tr>
                   <th>Descripción</th>
-                  {/* Encabezados fijos para las columnas */}
-                  {Array.from({ length: rubricData.cantidad_columnas || 0 }).map((_, index) => (
-                    <th key={index}>{index} PTOS</th>
-                  ))}
+                  {rubricData.cantidad_columnas > 0 &&
+                    Array.from({ length: rubricData.cantidad_columnas }).map((_, index) => (
+                      <th key={index}>{index} PTOS</th>
+                    ))}
                   <th>Peso (%)</th>
                 </tr>
               </thead>
@@ -63,27 +163,24 @@ function EvaluateRubric() {
                   criterio.subcriterios.map((subcriterio, subcriterioIndex) => (
                     <tr key={subcriterioIndex}>
                       <td>{subcriterio.descripcion || 'Sin descripción'}</td>
-                      {subcriterio.columnas && subcriterio.columnas.length > 0 ? (
-                        subcriterio.columnas.map((columna, columnaIndex) => (
+                      {rubricData.cantidad_columnas > 0 &&
+                        Array.from({ length: rubricData.cantidad_columnas }).map((_, columnaIndex) => (
                           <td
                             key={columnaIndex}
                             className={`selectable-cell ${
-                              selectedOptions[subcriterio.subcriterioid] === columnaIndex ? 'selected' : ''
+                              selectedOptions[subcriterio.subcriterio_id] === columnaIndex ? 'selected' : ''
                             }`}
-                            onClick={() => handleOptionSelect(subcriterio.subcriterioid, columnaIndex)}
+                            onClick={() => handleOptionSelect(subcriterio.subcriterio_id, columnaIndex)}
                           >
-                            {columna.textocolumna || 'Sin texto'}
+                            {columnaIndex} PTOS
                           </td>
-                        ))
-                      ) : (
-                        <td colSpan={rubricData.cantidad_columnas}>Sin columnas</td>
-                      )}
+                        ))}
                       <td>{subcriterio.porcentaje || 0}%</td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={rubricData.cantidad_columnas + 2}>No hay subcriterios definidos</td>
+                    <td colSpan={rubricData.cantidad_columnas + 1}>No hay subcriterios definidos</td>
                   </tr>
                 )}
               </tbody>
@@ -94,9 +191,28 @@ function EvaluateRubric() {
         <p>No hay criterios disponibles.</p>
       )}
 
-      <button className="submit-button" onClick={handleSubmit}>
-        Aceptar
+      {/* Botón para abrir el modal de confirmación */}
+      <button className="submit-button" onClick={handleOpenConfirmModal}>
+        Guardar
       </button>
+
+      {/* Modal de confirmación */}
+      {confirmSubmit && (
+        <div className="modal-overlay">
+            <div className="modal-content">
+              <p style={{ fontWeight: 'bold', textAlign: 'center' }}>
+                  ¿Está seguro de enviar el resultado de esta propuesta?
+              </p>
+              <p style={{textAlign: 'center', marginTop: '10px' }}>
+                  Advertencia: Este resultado es irreversible
+              </p>
+              <div className="confirmation-buttons">
+                  <button className="confirm-yes" onClick={handleConfirmSave}>Sí</button>
+                  <button className="confirm-no" onClick={handleCloseConfirmModal}>No</button>
+              </div>
+            </div>
+        </div>
+      )}
     </div>
   );
 }
