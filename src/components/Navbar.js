@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom'; // Importa Link de react-router-dom
+import { Link } from 'react-router-dom';
 import './Navbar.css';
 
 const Navbar = ({ roles, userId }) => {
@@ -38,7 +38,7 @@ const Navbar = ({ roles, userId }) => {
               route = '/rubrics/show_rubrics';
               break;
             case 'Crear rúbricas':
-              route = '/rubrics/create'; // Cambia según la ruta correcta
+              route = '/rubrics/create';
               break;
             case 'Listar rúbricas creadas':
               route = '/rubrics/show_created_rubrics';
@@ -51,11 +51,28 @@ const Navbar = ({ roles, userId }) => {
           }
 
           return (
-            <Link key={index} to={route} state={{roles, userId}}>
+            <Link key={index} to={route} state={{ roles, userId }}>
               {option}
             </Link>
           );
         })}
+
+        {/* Dropdown para la opción Asignación solo para Evaluador */}
+        {roles.includes('Administrador') && (
+          <div className="dropdown">
+            <span className="dropdown-toggle">
+              Asignación
+            </span>
+            <div className="dropdown-menu">
+              <Link to="/assign_rubric" state={{ roles, userId }}>
+                Asignar Rúbrica
+              </Link>
+              <Link to="/assign_evaluator" state={{ roles, userId }}>
+                Asignar Evaluador
+              </Link>
+            </div>
+          </div>
+        )}
       </div>
     </nav>
   );

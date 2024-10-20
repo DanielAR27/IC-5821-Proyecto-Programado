@@ -386,7 +386,7 @@ function Matrix({ formData, onReturnToForm }) {
 
             <input
               type="text"
-              placeholder="Nombre del criterio"
+              placeholder="Inserte el nombre del criterio"
               value={criteria[currentCriterion].name}
               onChange={(e) => handleCriterionNameChange(e.target.value)}
               className="criterion-name-input"
@@ -397,7 +397,7 @@ function Matrix({ formData, onReturnToForm }) {
                 <tr>
                   <th>{criteria[currentCriterion].name || 'Criterio'}</th>
                   {Array.from({ length: numColumns }, (_, i) => (
-                    <th key={i}>{i + 1} PTOS</th>
+                    <th key={i}>{i} PTOS</th>
                   ))}
                   <th>PESO (%)</th>
                 </tr>
@@ -478,7 +478,7 @@ function RubricRow({ rowIndex, row, numColumns, handleDescriptionChange, setSele
       {Array.from({ length: numColumns }).map((_, columnIndex) => (
         <td key={columnIndex}>
           <textarea
-            placeholder={`${columnIndex + 1} PTOS`}
+            placeholder={`${columnIndex} PTOS`}
             value={row[`puntaje_${columnIndex}`] || ''}
             onChange={(e) => handleChange(`puntaje_${columnIndex}`, e.target.value)}
             className="text-box large-text-box"

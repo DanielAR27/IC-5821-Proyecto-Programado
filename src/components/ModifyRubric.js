@@ -90,18 +90,21 @@ function ModifyRubric() {
   };
 
   const handleConfirmDelete = () => {
-    // Clonamos el estado actual de formData
     const updatedFormData = { ...formData };
   
     // Eliminamos el criterio según el índice guardado en criterioToDelete
     updatedFormData.criterios.splice(criterioToDelete, 1);
   
-    // Actualizamos el estado de los criterios
-    setFormData(updatedFormData);
+    // Reorganizamos los números de los criterios para que no haya huecos
+    updatedFormData.criterios = updatedFormData.criterios.map((criterio, index) => ({
+      ...criterio,
+      orden: index  // Actualizamos el índice de cada criterio para que sea consecutivo
+    }));
   
-    // Cerramos el modal
-    setIsDeleteModalOpen(false);
+    setFormData(updatedFormData);
+    setIsDeleteModalOpen(false); // Cerramos el modal de confirmación
   };
+  
 
   const handleCancelDelete = () => {
     setIsDeleteModalOpen(false);
@@ -109,8 +112,7 @@ function ModifyRubric() {
 
   const handleAddCriterion = () => {
     const newCriterio = {
-      nombrecriterio: `Nuevo criterio ${formData.criterios.length + 1}`,
-      subcriterios: [],
+      subcriterios: []
     };
   
     // Actualiza el estado con el nuevo criterio
@@ -392,7 +394,7 @@ const handleSaveChanges = async () => {
                   <tr>
                     <th>Descripción</th>
                     {criterio.subcriterios[0]?.columnas.map((columna, colIndex) => (
-                      <th key={colIndex}>{colIndex + 1} PTOS</th>
+                      <th key={colIndex}>{colIndex} PTOS</th>
                     ))}
                     <th>Porcentaje</th>
                   </tr>
@@ -443,7 +445,7 @@ const handleSaveChanges = async () => {
               value={formData.criterios[currentEditingCriterion].nombrecriterio}
               onChange={(e) => handleCriterionChange('nombrecriterio', e.target.value)}
               className="criterion-name-input"
-              placeholder="Nombre del criterio"
+              placeholder="Inserte el nombre del criterio"  // Placeholder para el criterio
             />
 
             <table className="rubric-table">
@@ -451,9 +453,9 @@ const handleSaveChanges = async () => {
                 <tr>
                   <th>Descripción</th>
                   {Array.from({ length: formData.cantidad_columnas }).map((_, index) => (
-                    <th key={index}>{index + 1} PTOS</th>
+                    <th key={index}>{index} PTOS</th>  // Placeholder para las columnas
                   ))}
-                  <th>Peso (%)</th>
+                  <th>PESO (%)</th>
                 </tr>
               </thead>
               <tbody>
@@ -468,6 +470,7 @@ const handleSaveChanges = async () => {
                         value={subcriterio.descripcion}
                         onChange={(e) => handleCriterionChange(`subcriterios.${subIndex}.descripcion`, e.target.value)}
                         className="text-box"
+                        placeholder="Descripción del subcriterio"  // Placeholder para los subcriterios
                       />
                     </td>
                     {subcriterio.columnas.map((columna, colIndex) => (
@@ -476,6 +479,7 @@ const handleSaveChanges = async () => {
                           value={columna.textocolumna}
                           onChange={(e) => handleCriterionChange(`subcriterios.${subIndex}.columnas.${colIndex}.textocolumna`, e.target.value)}
                           className="text-box"
+                          placeholder={`${colIndex} PTOS`}  // Placeholder para cada columna
                         />
                       </td>
                     ))}
@@ -495,10 +499,10 @@ const handleSaveChanges = async () => {
                         value={subcriterio.porcentaje}
                         onChange={(e) => handleCriterionChange(`subcriterios.${subIndex}.porcentaje`, e.target.value)}
                         className="percentage-input"
-                      />
-                    </td>
+                      /> %
+                    </td> 
                   </tr>
-                ))}
+                ))} 
               </tbody>
             </table>
 
@@ -513,6 +517,7 @@ const handleSaveChanges = async () => {
           </div>
         </>
       )}
+
     </div>
   );
 }

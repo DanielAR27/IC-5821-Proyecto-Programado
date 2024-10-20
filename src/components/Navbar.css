@@ -1,26 +1,77 @@
 /* src/components/Navbar.css */
 .navbar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 15px;
-    background-color: #a9a9a9; /* Azul */
-    color: white;
-  }
-  
-  .navbar-left {
-    font-size: 24px;
-    font-weight: bold;
-  }
-  
-  .navbar-right a {
-    color: white;
-    margin-left: 15px;
-    text-decoration: none;
-    font-weight: bold;
-  }
-  
-  .navbar-right a:hover {
-    text-decoration: underline; /* Añadir subrayado al pasar el ratón */
-  }
-  
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px;
+  background-color: #a9a9a9; /* Fondo gris */
+  color: white;
+}
+
+.navbar-left {
+  font-size: 24px;
+  font-weight: bold;
+}
+
+.navbar-right {
+  display: flex;
+  align-items: center;
+}
+
+.navbar-right a {
+  color: white;
+  margin-left: 15px;
+  text-decoration: none;
+  font-weight: bold;
+}
+
+.navbar-right a:hover {
+  text-decoration: underline;
+}
+
+/* Dropdown container */
+.dropdown {
+  position: relative;
+  display: inline-block;
+  margin-left: 15px; /* Espacio entre otros elementos del navbar */
+}
+
+.dropdown-toggle {
+  cursor: pointer;
+  font-weight: bold;
+  padding: 10px;
+  background-color: transparent; /* Fondo transparente */
+  color: white; /* Texto blanco */
+  border: none;
+}
+
+.dropdown-menu {
+  display: none; /* Por defecto oculto */
+  position: absolute;
+  background-color: #ffffff; /* Fondo blanco */
+  color: black;
+  min-width: 150px; /* Ajustar el tamaño mínimo */
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+  z-index: 1;
+  border-radius: 5px; /* Borde redondeado */
+}
+
+.dropdown-menu a {
+  padding: 12px 16px;
+  text-decoration: none;
+  display: block;
+  color: black;
+}
+
+.dropdown-menu a:hover {
+  background-color: #ddd;
+}
+
+.dropdown:hover .dropdown-menu {
+  display: block; /* Mostrar cuando pasas el cursor por el dropdown */
+}
+
+.dropdown-toggle:hover {
+  background-color: rgba(255, 255, 255, 0.2); /* Fondo claro al pasar el cursor */
+  border-radius: 5px;
+}

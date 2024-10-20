@@ -64,6 +64,10 @@ app.post('/rubricas/crear', async (req, res) => {
   }
 });
 
+// TODO: Revisar error: la columna «rubrica_id» fue especificada más de una vez
+// ver que pasa si se guarda desde info general, evitar que se borre todo
+// si hubo un error.
+
 // Ruta para actualizar una rúbrica con criterios, subcriterios y columnas
 // Ruta para actualizar una rúbrica con criterios, subcriterios y columnas
 app.put('/rubricas/actualizar/:id', async (req, res) => {
@@ -71,6 +75,11 @@ app.put('/rubricas/actualizar/:id', async (req, res) => {
   const { criterios, ...restoDatosRubrica } = req.body;
 
   try {
+    // Validar que rubrica_id no esté duplicado
+    if ('rubrica_id' in restoDatosRubrica) {
+      delete restoDatosRubrica.rubrica_id; // Eliminar rubrica_id si está presente en los datos a actualizar
+    }
+
     // Actualiza la rúbrica principal
     const rubricaKeys = Object.keys(restoDatosRubrica);
     const rubricaValues = Object.values(restoDatosRubrica);
@@ -80,71 +89,312 @@ app.put('/rubricas/actualizar/:id', async (req, res) => {
       SET ${rubricaKeys.map((key, index) => `${key} = $${index + 1}`).join(', ')}
       WHERE rubrica_id = $${rubricaKeys.length + 1}
     `;
-
     await pool.query(updateRubricaQuery, [...rubricaValues, id]);
 
-    // Elimina los criterios antiguos
-    await pool.query('DELETE FROM criterios WHERE rubrica_id = $1', [id]);
+    // Obtener los IDs de los criterios actuales
+    const criterioIds = criterios.map(c => c.criterio_id).filter(id => id);
+
+    if (criterioIds.length > 0) {
+      // Eliminar criterios que ya no están en la lista
+      const deleteCriteriosQuery = `
+        DELETE FROM criterios
+        WHERE rubrica_id = $1 AND criterio_id NOT IN (${criterioIds.map((_, index) => `$${index + 2}`).join(', ')})
+      `;
+      await pool.query(deleteCriteriosQuery, [id, ...criterioIds]);
+    } else {
+      // Si no hay criterios, eliminar todos los criterios de la rúbrica
+      await pool.query('DELETE FROM criterios WHERE rubrica_id = $1', [id]);
+    }
 
     for (let criterio of criterios) {
-      const { subcriterios, ...restoDatosCriterio } = criterio;
-    
-      // Inserta los criterios actualizados
-      const criterioKeys = Object.keys(restoDatosCriterio);
-      const criterioValues = Object.values(restoDatosCriterio);
-    
-      const insertCriterioQuery = `
-        INSERT INTO criterios (${criterioKeys.join(', ')}, rubrica_id)
-        VALUES (${criterioKeys.map((_, index) => `$${index + 1}`).join(', ')}, $${criterioKeys.length + 1})
-        RETURNING criterio_id
-      `;
-    
-      const { rows: criterioResult } = await pool.query(insertCriterioQuery, [...criterioValues, id]);
-    
-      const criterioId = criterioResult[0].criterio_id;
-    
-      for (let subcriterio of subcriterios) {
-        const { columnas, ...restoDatosSubcriterio } = subcriterio;
-    
-        // Inserta los subcriterios actualizados
-        const subcriterioKeys = Object.keys(restoDatosSubcriterio);
-        const subcriterioValues = Object.values(restoDatosSubcriterio);
-    
-        const insertSubcriterioQuery = `
-          INSERT INTO subcriterios (${subcriterioKeys.join(', ')}, criterio_id)
-          VALUES (${subcriterioKeys.map((_, index) => `$${index + 1}`).join(', ')}, $${subcriterioKeys.length + 1})
-          RETURNING subcriterio_id
+      const { criterio_id, subcriterios, ...restoDatosCriterio } = criterio;
+
+      let criterioId;
+      if (criterio_id) {
+        // Si criterio_id existe, actualizar el criterio
+        const criterioKeys = Object.keys(restoDatosCriterio);
+        const criterioValues = Object.values(restoDatosCriterio);
+        const updateCriterioQuery = `
+          UPDATE criterios
+          SET ${criterioKeys.map((key, index) => `${key} = $${index + 1}`).join(', ')}
+          WHERE criterio_id = $${criterioKeys.length + 1}
+          RETURNING criterio_id
         `;
-    
-        const { rows: subcriterioResult } = await pool.query(insertSubcriterioQuery, [...subcriterioValues, criterioId]);
-    
-        const subcriterioId = subcriterioResult[0].subcriterio_id;
-    
-        for (let columna of columnas) {
-          // Inserta las columnas actualizadas
-          const columnaKeys = Object.keys(columna);
-          const columnaValues = Object.values(columna);
-    
-          const insertColumnaQuery = `
-            INSERT INTO columnas (${columnaKeys.join(', ')}, subcriterio_id)
-            VALUES (${columnaKeys.map((_, index) => `$${index + 1}`).join(', ')}, $${columnaKeys.length + 1})
+        const { rows: criterioResult } = await pool.query(updateCriterioQuery, [...criterioValues, criterio_id]);
+        criterioId = criterioResult[0].criterio_id;
+      } else {
+        // Insertar nuevo criterio si no existe
+        const criterioKeys = Object.keys(restoDatosCriterio);
+        const criterioValues = Object.values(restoDatosCriterio);
+        const insertCriterioQuery = `
+          INSERT INTO criterios (${criterioKeys.join(', ')}, rubrica_id)
+          VALUES (${criterioKeys.map((_, index) => `$${index + 1}`).join(', ')}, $${criterioKeys.length + 1})
+          RETURNING criterio_id
+        `;
+        const { rows: criterioResult } = await pool.query(insertCriterioQuery, [...criterioValues, id]);
+        criterioId = criterioResult[0].criterio_id;
+      }
+
+      // Eliminar subcriterios antiguos si no están en la lista de IDs actuales
+      const subcriterioIds = subcriterios.map(s => s.subcriterio_id).filter(id => id);
+
+      if (subcriterioIds.length > 0) {
+        const deleteSubcriteriosQuery = `
+          DELETE FROM subcriterios
+          WHERE criterio_id = $1 AND subcriterio_id NOT IN (${subcriterioIds.map((_, index) => `$${index + 2}`).join(', ')})
+        `;
+        await pool.query(deleteSubcriteriosQuery, [criterioId, ...subcriterioIds]);
+      } else {
+        await pool.query('DELETE FROM subcriterios WHERE criterio_id = $1', [criterioId]);
+      }
+
+      // Insertar o actualizar los subcriterios
+      for (let subcriterio of subcriterios) {
+        const { subcriterio_id, columnas, ...restoDatosSubcriterio } = subcriterio;
+
+        let subcriterioId;
+        if (subcriterio_id) {
+          // Actualizar subcriterio existente
+          const subcriterioKeys = Object.keys(restoDatosSubcriterio);
+          const subcriterioValues = Object.values(restoDatosSubcriterio);
+          const updateSubcriterioQuery = `
+            UPDATE subcriterios
+            SET ${subcriterioKeys.map((key, index) => `${key} = $${index + 1}`).join(', ')}
+            WHERE subcriterio_id = $${subcriterioKeys.length + 1}
+            RETURNING subcriterio_id
           `;
-    
-          await pool.query(insertColumnaQuery, [...columnaValues, subcriterioId]);
+          const { rows: subcriterioResult } = await pool.query(updateSubcriterioQuery, [...subcriterioValues, subcriterio_id]);
+          subcriterioId = subcriterioResult[0].subcriterio_id;
+        } else {
+          // Insertar nuevo subcriterio
+          const subcriterioKeys = Object.keys(restoDatosSubcriterio);
+          const subcriterioValues = Object.values(restoDatosSubcriterio);
+          const insertSubcriterioQuery = `
+            INSERT INTO subcriterios (${subcriterioKeys.join(', ')}, criterio_id)
+            VALUES (${subcriterioKeys.map((_, index) => `$${index + 1}`).join(', ')}, $${subcriterioKeys.length + 1})
+            RETURNING subcriterio_id
+          `;
+          const { rows: subcriterioResult } = await pool.query(insertSubcriterioQuery, [...subcriterioValues, criterioId]);
+          subcriterioId = subcriterioResult[0].subcriterio_id;
+        }
+
+        // Eliminar columnas antiguas si no están en la lista de IDs actuales
+        const columnaIds = columnas.map(c => c.columna_id).filter(id => id);
+
+        if (columnaIds.length > 0) {
+          const deleteColumnasQuery = `
+            DELETE FROM columnas
+            WHERE subcriterio_id = $1 AND columna_id NOT IN (${columnaIds.map((_, index) => `$${index + 2}`).join(', ')})
+          `;
+          await pool.query(deleteColumnasQuery, [subcriterioId, ...columnaIds]);
+        } else {
+          await pool.query('DELETE FROM columnas WHERE subcriterio_id = $1', [subcriterioId]);
+        }
+
+        // Insertar o actualizar las columnas
+        for (let columna of columnas) {
+          const { columna_id, ...restoDatosColumna } = columna;
+
+          if (columna_id) {
+            // Actualizar columna existente
+            const columnaKeys = Object.keys(restoDatosColumna);
+            const columnaValues = Object.values(restoDatosColumna);
+            const updateColumnaQuery = `
+              UPDATE columnas
+              SET ${columnaKeys.map((key, index) => `${key} = $${index + 1}`).join(', ')}
+              WHERE columna_id = $${columnaKeys.length + 1}
+            `;
+            await pool.query(updateColumnaQuery, [...columnaValues, columna_id]);
+          } else {
+            // Insertar nueva columna
+            const columnaKeys = Object.keys(restoDatosColumna);
+            const columnaValues = Object.values(restoDatosColumna);
+            const insertColumnaQuery = `
+              INSERT INTO columnas (${columnaKeys.join(', ')}, subcriterio_id)
+              VALUES (${columnaKeys.map((_, index) => `$${index + 1}`).join(', ')}, $${columnaKeys.length + 1})
+            `;
+            await pool.query(insertColumnaQuery, [...columnaValues, subcriterioId]);
+          }
         }
       }
     }
-    
+
     res.status(200).send('Rúbrica actualizada correctamente');
   } catch (error) {
     console.error('Error al actualizar la rúbrica:', error);
+
+    // Enviar una respuesta de error específica para evitar duplicados
+    if (error.code === '42701') {
+      return res.status(400).send('Error: la columna rubrica_id fue especificada más de una vez.');
+    }
+
     res.status(500).send('Error al actualizar la rúbrica');
   }
 });
 
-// TODO: Revisar error: la columna «rubrica_id» fue especificada más de una vez
-// ver que pasa si se guarda desde info general, evitar que se borre todo
-// si hubo un error.
+
+app.get('/rubricas', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT rubrica_id, titulo FROM Rubricas');
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error al obtener las rúbricas:', error);
+    res.status(500).json({ error: 'Error al obtener las rúbricas' });
+  }
+});
+
+// app.get para obtener evaluadores
+app.get('/evaluadores', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT CONCAT(Usuarios.Nombre, ' ', Usuarios.Apellido, ' (Correo: ', Usuarios.Correo, ')') AS nombre,
+             Usuarios.Usuario_ID
+      FROM Usuarios
+      INNER JOIN RolesAsignados ON RolesAsignados.Usuario_ID = Usuarios.Usuario_ID
+      WHERE RolesAsignados.TipoUsuario_ID = 2
+    `);
+    res.json(result.rows); // Enviar los datos de los evaluadores
+  } catch (error) {
+    console.error('Error al obtener los evaluadores:', error);
+    res.status(500).json({ error: 'Error al obtener los evaluadores' });
+  }
+});
+
+
+app.get('/propuestas', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT id_solicitud, descripcion, tipo_solicitud_origen FROM vista_solicitudes');
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error al obtener las propuestas:', error);
+    res.status(500).json({ error: 'Error al obtener las propuestas' });
+  }
+});
+
+app.post('/rubricapropuesta', async (req, res) => {
+  const { rubrica_id, propuesta_id, tipo_propuesta } = req.body;
+
+  try {
+    // Verificar si la asociación ya existe
+    const rubricExists = await pool.query(
+      'SELECT * FROM RubricaPropuesta WHERE rubrica_id = $1 AND propuesta_id = $2 AND tipopropuesta = $3',
+      [rubrica_id, propuesta_id, tipo_propuesta]
+    );
+
+    // Si ya existe, devolver un mensaje de advertencia
+    if (rubricExists.rows.length > 0) {
+      return res.status(409).json({ error: 'Esta rúbrica ya se encuentra asociada a este tipo de propuesta' });
+    }
+
+    // Paso 1: Insertar la nueva asignación de la rubrica
+    const result = await pool.query(
+      'INSERT INTO RubricaPropuesta (rubrica_id, propuesta_id, tipopropuesta) VALUES ($1, $2, $3) RETURNING rubricapropuesta_id',
+      [rubrica_id, propuesta_id, tipo_propuesta]
+    );
+    
+    const rubricapropuesta_id = result.rows[0].rubricapropuesta_id;
+    
+    // Paso 2: Buscar todas las asociaciones en RubricaPropuesta que coincidan con propuesta_id y tipo_propuesta
+    const evaluadoresAsociados = await pool.query(
+      'SELECT evaluadorpropuesta_id FROM EvaluadorPropuesta WHERE propuesta_id = $1 AND tipopropuesta = $2',
+      [propuesta_id, tipo_propuesta]
+    );
+
+    // Si no hay asociaciones en RubricaPropuesta, simplemente devolver un mensaje exitoso sin más procesamiento
+    if (evaluadoresAsociados.rows.length === 0) {
+      return res.status(200).json({ message: 'Asignación realizada. No hay rúbricas asociadas a esta propuesta y tipo de propuesta.' });
+    }
+
+    // Paso 3: Por cada rúbrica asociada, verificar si ya está en AsignacionPropuesta y si no, insertarla
+    for (const evaluadorpropuesta of evaluadoresAsociados.rows) {
+      const evaluadorpropuesta_id = evaluadorpropuesta.evaluadorpropuesta_id;
+
+      // Verificar si ya existe en AsignacionPropuestas
+      const asignacionExistente = await pool.query(
+        'SELECT * FROM AsignacionPropuestas WHERE rubricapropuesta_id = $1 AND evaluadorpropuesta_id = $2',
+        [rubricapropuesta_id, evaluadorpropuesta_id]
+      );
+
+      // Si no existe, insertar la nueva relación en AsignacionPropuesta
+      if (asignacionExistente.rows.length === 0) {
+      // Ejemplo de inserción sin especificar el EstadoPropuesta
+      await pool.query(
+        'INSERT INTO AsignacionPropuestas (RubricaPropuesta_ID, EvaluadorPropuesta_ID, EstadoPropuesta) VALUES ($1, $2, $3)',
+        [rubricapropuesta_id, evaluadorpropuesta_id, 1] // El valor 1 es el EstadoPropuesta que representa 'Asignada'
+      );      
+      }
+    }
+
+    res.status(200).json({ message: 'Asignación de evaluador y propuesta realizada correctamente.' });
+
+  } catch (error) {
+    console.error('Error al asignar el evaluador a la propuesta:', error);
+    res.status(500).json({ error: 'Error al asignar el evaluador a la propuesta.' });
+  }
+});
+
+app.post('/evaluadorpropuesta', async (req, res) => {
+  const { evaluador_id, propuesta_id, tipo_propuesta } = req.body;
+
+  try {
+    // Verificar si la asociación ya existe
+    const evaluatorExits = await pool.query(
+      'SELECT * FROM EvaluadorPropuesta WHERE evaluador_id = $1 AND propuesta_id = $2 AND tipopropuesta = $3',
+      [evaluador_id, propuesta_id, tipo_propuesta]
+    );
+
+    // Si ya existe, devolver un mensaje de advertencia
+    if (evaluatorExits.rows.length > 0) {
+      return res.status(409).json({ error: 'Esta rúbrica ya se encuentra asociada a este tipo de propuesta' });
+    }
+
+
+    // Paso 1: Insertar la nueva asignación del evaluador
+    const result = await pool.query(
+      'INSERT INTO EvaluadorPropuesta (evaluador_id, propuesta_id, tipopropuesta) VALUES ($1, $2, $3) RETURNING evaluadorpropuesta_id',
+      [evaluador_id, propuesta_id, tipo_propuesta]
+    );
+    
+    const evaluadorpropuesta_id = result.rows[0].evaluadorpropuesta_id;
+    
+    // Paso 2: Buscar todas las asociaciones en RubricaPropuesta que coincidan con propuesta_id y tipo_propuesta
+    const rubricasAsociadas = await pool.query(
+      'SELECT rubricapropuesta_id FROM RubricaPropuesta WHERE propuesta_id = $1 AND tipopropuesta = $2',
+      [propuesta_id, tipo_propuesta]
+    );
+
+    // Si no hay asociaciones en RubricaPropuesta, simplemente devolver un mensaje exitoso sin más procesamiento
+    if (rubricasAsociadas.rows.length === 0) {
+      return res.status(200).json({ message: 'Asignación realizada. No hay rúbricas asociadas a esta propuesta y tipo de propuesta.' });
+    }
+
+    // Paso 3: Por cada rúbrica asociada, verificar si ya está en AsignacionPropuesta y si no, insertarla
+    for (const rubricapropuesta of rubricasAsociadas.rows) {
+      const rubricapropuesta_id = rubricapropuesta.rubricapropuesta_id;
+
+      // Verificar si ya existe en AsignacionPropuestas
+      const asignacionExistente = await pool.query(
+        'SELECT * FROM AsignacionPropuestas WHERE rubricapropuesta_id = $1 AND evaluadorpropuesta_id = $2',
+        [rubricapropuesta_id, evaluadorpropuesta_id]
+      );
+
+      // Si no existe, insertar la nueva relación en AsignacionPropuesta
+      if (asignacionExistente.rows.length === 0) {
+      // Ejemplo de inserción sin especificar el EstadoPropuesta
+      await pool.query(
+        'INSERT INTO AsignacionPropuestas (RubricaPropuesta_ID, EvaluadorPropuesta_ID, EstadoPropuesta) VALUES ($1, $2, $3)',
+        [rubricapropuesta_id, evaluadorpropuesta_id, 1] // El valor 1 es el EstadoPropuesta que representa 'Asignada'
+      );      
+      }
+    }
+
+    res.status(200).json({ message: 'Asignación de evaluador y propuesta realizada correctamente.' });
+
+  } catch (error) {
+    console.error('Error al asignar el evaluador a la propuesta:', error);
+    res.status(500).json({ error: 'Error al asignar el evaluador a la propuesta.' });
+  }
+});
 
 // Ruta para obtener las rúbricas públicas
 app.get('/rubricas/publicas', async (req, res) => {
@@ -375,5 +625,7 @@ app.get('/roles/:userId', async (req, res) => {
 // Iniciar el servidor en el puerto 5000
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
+  console.log('PGUSER:', process.env.PGUSER);
+  console.log('PGPASSWORD:', process.env.PGPASSWORD);
   console.log(`Servidor corriendo en el puerto ${PORT}`);
 });
