@@ -12,6 +12,7 @@ import ModifyRubric from './components/ModifyRubric';
 import AssignRubric from './components/AssignRubric';
 import AssignEvaluator from './components/AssignEvaluator';
 import ShowEvaluation from './components/ShowEvaluations';
+import ReleaseProposals from './components/ReleaseProposals';
 
 function App() {
   return (
@@ -30,6 +31,7 @@ function App() {
           <Route path="/assign_rubric" element={<AssignRubric />} />
           <Route path="/assign_evaluator" element={<AssignEvaluator />} />
           <Route path="/rubrics/show_evaluation" element={<ShowEvaluation />} />
+          <Route path="/rubrics/release_proposals" element={<ReleaseProposals />} />
         </Routes>
       </Router>
   );

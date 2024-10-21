@@ -100,36 +100,44 @@ function AssignEvaluator() {
             <div className="selection-container">
               <h3>Seleccione un Evaluador</h3>
               <div className="scrollable-list">
-                {evaluadores.map((evaluador) => (
-                  <label key={evaluador.usuario_id} className="radio-label">
-                    <input
-                      type="radio"
-                      name="evaluador"
-                      value={evaluador.usuario_id}
-                      defaultChecked={selectedEvaluador?.usuario_id === evaluador.usuario_id} // Usar defaultChecked
-                      onClick={() => setSelectedEvaluador(evaluador)} // Usar onClick para actualizar
-                    />
-                    {evaluador.nombre} {/* El campo nombre ya viene concatenado con correo */}
-                  </label>
-                ))}
+                {evaluadores.length > 0 ? (
+                  evaluadores.map((evaluador) => (
+                    <label key={evaluador.usuario_id} className="radio-label">
+                      <input
+                        type="radio"
+                        name="evaluador"
+                        value={evaluador.usuario_id}
+                        defaultChecked={selectedEvaluador?.usuario_id === evaluador.usuario_id} 
+                        onClick={() => setSelectedEvaluador(evaluador)}
+                      />
+                      {evaluador.nombre}
+                    </label>
+                  ))
+                ) : (
+                  <p>No se han encontrado evaluadores de momento.</p>
+                )}
               </div>
             </div>
 
             <div className="selection-container">
               <h3>Seleccione una Propuesta</h3>
               <div className="scrollable-list">
-                {propuestas.map((propuesta) => (
-                  <label key={propuesta.id_solicitud} className="radio-label">
-                    <input
-                      type="radio"
-                      name="propuesta"
-                      value={propuesta.id_solicitud}
-                      defaultChecked={selectedPropuesta?.id_solicitud === propuesta.id_solicitud} // Usar defaultChecked
-                      onClick={() => setSelectedPropuesta(propuesta)} // Usar onClick para actualizar
-                    />
-                    {propuesta.descripcion}
-                  </label>
-                ))}
+                {propuestas.length > 0 ? (
+                  propuestas.map((propuesta) => (
+                    <label key={propuesta.id_solicitud} className="radio-label">
+                      <input
+                        type="radio"
+                        name="propuesta"
+                        value={propuesta.id_solicitud}
+                        defaultChecked={selectedPropuesta?.id_solicitud === propuesta.id_solicitud}
+                        onClick={() => setSelectedPropuesta(propuesta)}
+                      />
+                      {propuesta.descripcion}
+                    </label>
+                  ))
+                ) : (
+                  <p>No se han encontrado propuestas de momento.</p>
+                )}
               </div>
             </div>
 

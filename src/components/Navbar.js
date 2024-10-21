@@ -7,7 +7,7 @@ const Navbar = ({ roles, userId }) => {
     const options = []; // Inicializa opciones
 
     if (roles.includes('Administrador')) {
-      options.push('Listar rúbricas públicas', 'Listar rúbricas creadas', 'Crear rúbricas', 'Listar rúbricas disponibles');
+      options.push('Listar rúbricas públicas', 'Listar rúbricas creadas', 'Crear rúbricas', 'Listar rúbricas disponibles' , 'Liberar Propuestas');
     } else if (roles.includes('Creador')) {
       options.push('Listar rúbricas públicas', 'Crear rúbricas', 'Listar rúbricas creadas');
     }
@@ -48,6 +48,9 @@ const Navbar = ({ roles, userId }) => {
               break;
             case 'Evaluar propuestas':
               route = '/rubrics/show_evaluation';
+              break;
+            case 'Liberar Propuestas':
+              route = '/rubrics/release_proposals';
               break;
             default:
               break;

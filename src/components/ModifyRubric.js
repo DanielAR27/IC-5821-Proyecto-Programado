@@ -256,7 +256,7 @@ const handleSaveChanges = async () => {
   if (!formData) {
     return <div>Cargando...</div>;
   }
-
+  console.log(formData)
   return (
     <div className="modify-rubric-wrapper">
       <Navbar roles={roles} userId={creadorId} />
@@ -333,35 +333,34 @@ const handleSaveChanges = async () => {
             </div>
             <div className="form-group">
               <label>Área General:</label>
-              <input
-                type="text"
+              <select
                 name="areageneral"
-                value={formData.areageneral}
+                value= {formData.areageneral}
                 onChange={handleChange}
-                placeholder="Ingresa el área general"
-              />
+              >
+                <option value="VIE">VIE</option>
+                <option value="FDU">FDU</option>
+              </select>
             </div>
             <div className="form-group">
               <label>Área Específica:</label>
-              <select
+              <input
+                type="text"
                 name="areaespecifica"
                 value={formData.areaespecifica}
                 onChange={handleChange}
-              >
-                <option value="opción #1">opción #1</option>
-                <option value="opción #2">opción #2</option>
-              </select>
+                placeholder="Ingresa el area específica"
+              />
             </div>
             <div className="form-group">
               <label>Aspecto a Evaluar:</label>
-              <select
+              <input
+                type="text"
                 name="aspectoevaluar"
                 value={formData.aspectoevaluar}
                 onChange={handleChange}
-              >
-                <option value="opción #1">opción #1</option>
-                <option value="opción #2">opción #2</option>
-              </select>
+                placeholder="Ingresa el aspecto a evaluar"
+              />
             </div>
           </form>
 

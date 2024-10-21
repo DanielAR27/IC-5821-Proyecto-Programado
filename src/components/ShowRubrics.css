@@ -37,6 +37,15 @@
     margin-top: 10px;
   }
   
+  /* Estilo para el mensaje de carga global */
+  .loading-message {
+    text-align: center;
+    margin: 50px 0;
+    font-size: 18px;
+    color: #666;
+  }
+
+
   /* Información de la rúbrica */
   .rubric-info {
     display: flex;

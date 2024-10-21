@@ -526,7 +526,7 @@ app.get('/rubricas/creadas/:userId', async (req, res) => {
 });
 
 app.post('/evaluar_rubrica', async (req, res) => {
-  const { rubric_id, asignacionId, resultados } = req.body; // Desestructuramos los datos del body
+  const { rubric_id, asignacionId, resultados, observaciones } = req.body; // Desestructuramos para obtener 'observaciones'
 
   if (!Array.isArray(resultados)) {
     return res.status(400).json({ error: 'Formato incorrecto, se esperaba un array de resultados' });
@@ -537,7 +537,7 @@ app.post('/evaluar_rubrica', async (req, res) => {
 
   // Procesamos cada subcriterio recibido
   resultados.forEach((subcriterio) => {
-    const { subcriterio_id, puntos_obtenidos, porcentaje_asignado, criterio_id } = subcriterio;
+    const {porcentaje_asignado, criterio_id } = subcriterio;
 
     // Si el criterio aún no está en la lista, lo agregamos
     if (!criterios[criterio_id]) {
@@ -549,15 +549,12 @@ app.post('/evaluar_rubrica', async (req, res) => {
 
     // Sumamos el porcentaje del subcriterio al criterio correspondiente
     criterios[criterio_id].total_porcentaje += porcentaje_asignado;
-
-    console.log(`Subcriterio ID: ${subcriterio_id}, Criterio ID: ${criterio_id}, Puntos obtenidos: ${puntos_obtenidos}, Porcentaje asignado: ${porcentaje_asignado}`);
   });
 
   // Sumamos todos los porcentajes por criterio para calcular el total de la rúbrica
   let totalRubrica = 0;
   Object.values(criterios).forEach(criterio => {
     totalRubrica += criterio.total_porcentaje;
-    console.log(`Criterio ID: ${criterio.criterio_id}, Total porcentaje: ${criterio.total_porcentaje}`);
   });
 
   try {
@@ -570,10 +567,10 @@ app.post('/evaluar_rubrica', async (req, res) => {
       [asignacionId]
     );
 
-    // 2. Insertamos un nuevo registro en ResultadosRubrica
+    // 2. Insertamos un nuevo registro en ResultadosRubrica, incluyendo las observaciones si existen
     const resultadoInsert = await pool.query(
-      'INSERT INTO ResultadosRubrica (Asignacion_ID, Rubrica_ID, Resultado) VALUES ($1, $2, $3) RETURNING Resultado_ID',
-      [asignacionId, rubric_id, totalRubrica]
+      'INSERT INTO ResultadosRubrica (Asignacion_ID, Rubrica_ID, Resultado, Observaciones) VALUES ($1, $2, $3, $4) RETURNING Resultado_ID',
+      [asignacionId, rubric_id, totalRubrica, observaciones || ''] // Enviamos blank si no hay observaciones
     );
     const resultadoId = resultadoInsert.rows[0].resultado_id;
 
@@ -612,6 +609,29 @@ app.post('/evaluar_rubrica', async (req, res) => {
 });
 
 
+app.get('/get_associations', async (req, res) => {
+  try {
+    const result = await pool.query(`
+SELECT 
+  rp.RubricaPropuesta_ID AS asociacion_id,
+  CONCAT(r.AreaGeneral, ' - ', r.AreaEspecifica) AS nombre_rubrica,
+  r.AspectoEvaluar AS tipo,
+  vs.fecha_creacion AS fecha,
+  ep.TipoEstado AS estado
+FROM 
+  AsignacionPropuestas ap
+JOIN RubricaPropuesta rp ON ap.RubricaPropuesta_ID = rp.RubricaPropuesta_ID
+JOIN Rubricas r ON rp.Rubrica_ID = r.Rubrica_ID
+JOIN EstadoPropuesta ep ON ap.EstadoPropuesta = ep.Estado_ID
+LEFT JOIN Vista_Solicitudes vs ON rp.Propuesta_ID = vs.id_solicitud and rp.tipopropuesta = vs.tipo_solicitud_origen
+    `);
+    
+    res.json(result.rows); // Devolvemos las filas resultantes al frontend
+  } catch (error) {
+    console.error('Error al obtener asociaciones:', error);
+    res.status(500).json({ error: 'Ocurrió un error al obtener las asociaciones.' });
+  }
+});
 
 // Ruta para obtener una rúbrica por su ID
 app.get('/rubricas/:id', async (req, res) => {
@@ -797,7 +817,5 @@ app.get('/roles/:userId', async (req, res) => {
 // Iniciar el servidor en el puerto 5000
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log('PGUSER:', process.env.PGUSER);
-  console.log('PGPASSWORD:', process.env.PGPASSWORD);
   console.log(`Servidor corriendo en el puerto ${PORT}`);
 });

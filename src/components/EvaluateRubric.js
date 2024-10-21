@@ -8,6 +8,7 @@ function EvaluateRubric() {
   const [loading, setLoading] = useState(true); // Para manejar el estado de carga
   const [selectedOptions, setSelectedOptions] = useState({}); // Estado para almacenar la columna seleccionada por subcriterio
   const [confirmSubmit, setConfirmSubmit] = useState(false); // Estado para mostrar/ocultar el modal
+  const [observaciones, setObservaciones] = useState(''); // Estado para almacenar las observaciones
   const location = useLocation();
   const roles = location.state?.roles || [];
   const userId = location.state?.userId;
@@ -95,11 +96,12 @@ function EvaluateRubric() {
       });
     });
 
-    // Enviar los resultados al servidor junto con rubric_id y asignacionId
+    // Enviar los resultados al servidor junto con rubric_id, asignacionId y observaciones si hay
     const dataToSend = {
       rubric_id: id,
       asignacionId,
       resultados,
+      observaciones: observaciones.trim()
     };
 
     fetch('http://localhost:5000/evaluar_rubrica', {
@@ -190,6 +192,18 @@ function EvaluateRubric() {
       ) : (
         <p>No hay criterios disponibles.</p>
       )}
+
+      {/* Campo para observaciones dentro de un recuadro */}
+      <div className="criterion-container">
+        <h3>Observaciones</h3>
+        <textarea
+          id="observaciones"
+          value={observaciones}
+          onChange={(e) => setObservaciones(e.target.value)}
+          placeholder="Inserte las observaciones que vea necesarias."
+          style={{ width: '100%', height: '150px', resize: 'none', padding: '10px' }} // Tamaño fijo y estilo básico
+        />
+      </div>
 
       {/* Botón para abrir el modal de confirmación */}
       <button className="submit-button" onClick={handleOpenConfirmModal}>

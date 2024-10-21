@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react'; 
 import { useLocation } from 'react-router-dom';
 import Navbar from './Navbar';
 import './AssignRubric.css'; 
@@ -93,36 +93,44 @@ function AssignRubric() {
             <div className="selection-container">
               <h3>Seleccione una Rúbrica</h3>
               <div className="scrollable-list">
-                {rubricas.map((rubrica) => (
-                  <label key={rubrica.rubrica_id} className="radio-label">
-                    <input
-                      type="radio"
-                      name="rubrica"
-                      value={rubrica.rubrica_id}
-                      defaultChecked={selectedRubrica?.rubrica_id === rubrica.rubrica_id} // Usar defaultChecked
-                      onClick={() => setSelectedRubrica(rubrica)} // Usar onClick
-                    />
-                    {rubrica.titulo}
-                  </label>
-                ))}
+                {rubricas.length > 0 ? (
+                  rubricas.map((rubrica) => (
+                    <label key={rubrica.rubrica_id} className="radio-label">
+                      <input
+                        type="radio"
+                        name="rubrica"
+                        value={rubrica.rubrica_id}
+                        defaultChecked={selectedRubrica?.rubrica_id === rubrica.rubrica_id}
+                        onClick={() => setSelectedRubrica(rubrica)}
+                      />
+                      {rubrica.titulo}
+                    </label>
+                  ))
+                ) : (
+                  <p>No se han encontrado rúbricas de momento.</p>
+                )}
               </div>
             </div>
 
             <div className="selection-container">
               <h3>Seleccione una Propuesta</h3>
               <div className="scrollable-list">
-                {propuestas.map((propuesta) => (
-                  <label key={propuesta.id_solicitud} className="radio-label">
-                    <input
-                      type="radio"
-                      name="propuesta"
-                      value={propuesta.id_solicitud}
-                      defaultChecked={selectedPropuesta?.id_solicitud === propuesta.id_solicitud} // Usar defaultChecked
-                      onClick={() => setSelectedPropuesta(propuesta)} // Usar onClick
-                    />
-                    {propuesta.descripcion}
-                  </label>
-                ))}
+                {propuestas.length > 0 ? (
+                  propuestas.map((propuesta) => (
+                    <label key={propuesta.id_solicitud} className="radio-label">
+                      <input
+                        type="radio"
+                        name="propuesta"
+                        value={propuesta.id_solicitud}
+                        defaultChecked={selectedPropuesta?.id_solicitud === propuesta.id_solicitud}
+                        onClick={() => setSelectedPropuesta(propuesta)}
+                      />
+                      {propuesta.descripcion}
+                    </label>
+                  ))
+                ) : (
+                  <p>No se han encontrado propuestas de momento.</p>
+                )}
               </div>
             </div>
 

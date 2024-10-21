@@ -1,0 +1,66 @@
+/* Contenedor general */
+.release-proposals-wrapper {
+  width: 100%;
+}
+
+/* Tabla de asociaciones */
+.associations-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 20px;
+}
+
+.associations-table th, .associations-table td {
+  padding: 10px;
+  text-align: left;
+}
+
+.associations-table th {
+  background-color: #ffffff;
+}
+
+.associations-table td {
+  background-color: #02000000;
+}
+
+/* Estilo para filas intercaladas */
+.associations-table tbody tr:nth-child(odd) {
+  background-color: #e3f2fd; /* Filas impares (blancas) */
+}
+
+.associations-table tbody tr:nth-child(even) {
+  background-color: #ffff; /* Filas pares (azules suaves) */
+}
+
+/* Estilo para los iconos de acciones */
+.icon-action {
+  margin-right: 10px;
+  font-size: 1.2em;
+  color: #555;
+  cursor: pointer;
+  transition: color 0.3s ease;
+}
+
+.icon-action:hover {
+  color: #007bff; /* Cambia el color cuando se pasa el mouse */
+}
+
+/* Estilo para el mensaje de no asociaciones */
+.no-associations-message {
+  text-align: center;
+  font-size: 18px;
+  color: #666;
+  margin-top: 30px;
+}
+
+/* Estilo para el mensaje de carga */
+.loading-message {
+  text-align: center;
+  margin-top: 30px;
+}
+
+.loading-gif {
+  width: 50px;
+  height: 50px;
+  margin-top: 10px;
+}

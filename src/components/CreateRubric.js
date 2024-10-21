@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './CreateRubric.css';
 import Navbar from './Navbar'; // Importa el Navbar
+import { useNavigate } from 'react-router-dom';  // Asegúrate de importar useNavigate
 import { useLocation } from 'react-router-dom';
 
 function CreateRubric() {
@@ -13,9 +14,9 @@ function CreateRubric() {
     fecha: '',
     titulo: '',
     descripcion: '',
-    areaGeneral: '',
-    areaEspecifica: 'opción #1',
-    aspectoEvaluar: 'opción #1',
+    areaGeneral: 'VIE',
+    areaEspecifica: '',
+    aspectoEvaluar: '',
   });
   const [showMatrix, setShowMatrix] = useState(false);
   const [isButtonDisabled, setIsButtonDisabled] = useState(true);
@@ -89,35 +90,34 @@ function CreateRubric() {
             </div>
             <div className="form-group">
               <label>Área General:</label>
-              <input
-                type="text"
+              <select
                 name="areaGeneral"
-                value={formData.areaGeneral}
+                value= {formData.areaGeneral}
                 onChange={handleChange}
-                placeholder="Ingresa el área general"
-              />
+              >
+                <option value="VIE">VIE</option>
+                <option value="FDU">FDU</option>
+              </select>
             </div>
             <div className="form-group">
               <label>Área Específica:</label>
-              <select
+              <input
+                type="text"
                 name="areaEspecifica"
                 value={formData.areaEspecifica}
                 onChange={handleChange}
-              >
-                <option value="opción #1">opción #1</option>
-                <option value="opción #2">opción #2</option>
-              </select>
+                placeholder="Ingresa el area específica"
+              />
             </div>
             <div className="form-group">
               <label>Aspecto a Evaluar:</label>
-              <select
+              <input
+                type="text"
                 name="aspectoEvaluar"
                 value={formData.aspectoEvaluar}
                 onChange={handleChange}
-              >
-                <option value="opción #1">opción #1</option>
-                <option value="opción #2">opción #2</option>
-              </select>
+                placeholder="Ingresa el aspecto a evaluar"
+              />
             </div>
           </form>
 
@@ -140,6 +140,7 @@ function CreateRubric() {
 function Matrix({ formData, onReturnToForm }) {
   const location = useLocation();
   const creadorId = location.state?.userId;
+  const navigate = useNavigate();  // Inicializa useNavigate para redirección
 
   const [numColumns, setNumColumns] = useState(0);
   const [numCriteria, setNumCriteria] = useState(0);
@@ -147,6 +148,7 @@ function Matrix({ formData, onReturnToForm }) {
   const [criteria, setCriteria] = useState([]);
   const [setupComplete, setSetupComplete] = useState(false);
   const [selectedRow, setSelectedRow] = useState(null);
+  const [isSaveDisabled, setIsSaveDisabled] = useState(false); 
   const [isPreview, setIsPreview] = useState(false);
   const [warningMessage, setWarningMessage] = useState('');
 
@@ -293,8 +295,10 @@ function Matrix({ formData, onReturnToForm }) {
         })),
       })),
     };
-
+  
     try {
+      setIsSaveDisabled(true);  // Deshabilitar el botón al hacer clic
+  
       const response = await fetch('http://localhost:5000/rubricas/crear', {
         method: 'POST',
         headers: {
@@ -302,19 +306,27 @@ function Matrix({ formData, onReturnToForm }) {
         },
         body: JSON.stringify(rubricData),
       });
-
+  
       if (!response.ok) {
         throw new Error('Error en la solicitud POST');
       }
-
+  
       await response.json();
       setSuccessMessage('¡La rúbrica se ha guardado exitosamente!');
-
+  
+      // Redirigir a la página de rúbricas públicas después de 3 segundos
       setTimeout(() => {
         setSuccessMessage('');
+        navigate('/rubrics/show_rubrics', {
+          state: {
+            roles: location.state?.roles,  // Mantén los roles del usuario
+            userId: location.state?.userId  // Mantén el ID del usuario
+          },
+        });
       }, 3000);
     } catch (error) {
       setWarningMessage('Hubo un error al guardar la rúbrica.');
+      setIsSaveDisabled(false);  // Volver a habilitar el botón si hay un error
     }
   };
 
@@ -374,7 +386,7 @@ function Matrix({ formData, onReturnToForm }) {
             <button onClick={backToEdit} className="edit-button">
               Regresar a edición
             </button>
-            <button onClick={saveRubric} className="save-button">
+            <button onClick={saveRubric} className="save-button" disabled={isSaveDisabled}>
               Guardar
             </button>
           </div>
@@ -550,4 +562,4 @@ function PreviewRubric({ criteria, numColumns }) {
   );
 }
 
-export default CreateRubric;
+export default CreateRubric
